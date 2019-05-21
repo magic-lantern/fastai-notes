@@ -116,11 +116,13 @@ Code to build initial version of language model
 
 ```python
 ## why does this only seem to use CPU?
-# both textclasdatabunch and textlist...
+# applies to both both textclasdatabunch and textlist...
+# for 100% of the mimic noteevents data:
 # run out of memory at 32 GB, error at 52 GB, trying 72GB now... got down to only 440MB free; if crash again, increase memory
 # now at 20vCPU and 128GB RAM; ok up to 93%; got down to 22GB available
 # succeeded with 20CPU and 128GB RAM...
 # try smaller batch size? will that reduce memory requirements?
+# with 10% dataset sample, it seems I could get by with perhaps 32GB system RAM
 data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
            #We may have other temp folders that contain text files so we only keep what's in train and test
            .split_by_rand_pct(0.1)
@@ -166,6 +168,12 @@ learn.lr_find()
 learn.recorder.plot(skip_end=15)
 ```
 
+### Initial model training
+
+Full data set took about 13 hours using the Nvidia P1000; Full data set was predicted to take about 25 hours with the T4
+
+10% data is predicted to take about 1 hour (1:10) using the Nvidia P1000
+
 ```python
 # no idea how long nor how much resources this will take
 # not sure 1e-2 is the right learning rate; maybe 1e-1 or between 1e-2 and 1e-1
@@ -177,7 +185,8 @@ learn.recorder.plot(skip_end=15)
 # at start GPU using about 5GB RAM
 # after about 8 hours GPU using about 7.5GB RAM.
 # looks like I could increase batch size...
-learn.fit_one_cycle(1, 1e-2, moms=(0.8,0.7))
+# with bs=64, still only seems to be using about 7GB GPU RAM after running for 15 minutes. will check after a bit, but likely can increase batch size further
+learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
 ```
 
 ```python
@@ -193,7 +202,7 @@ learn.unfreeze()
 ```
 
 ```python
-learn.fit_one_cycle(10, 1e-3, moms=(0.8,0.7))
+learn.fit_one_cycle(10, 5e-3, moms=(0.8,0.7))
 ```
 
 ```python
