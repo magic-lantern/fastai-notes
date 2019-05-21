@@ -37,6 +37,7 @@ from sklearn.model_selection import train_test_split
 ```python
 # pandas doesn't understand ~, so provide full path
 base_path = Path('/home/jupyter/mimic')
+seed = 42
 ```
 
 ```python
@@ -59,7 +60,7 @@ else:
 ```
 
 ```python
-df = orig_df.sample(frac=0.1)
+df = orig_df.sample(frac=0.1, random_state=seed)
 ```
 
 ```python
@@ -76,7 +77,6 @@ df.shape
 
 ```python
 # split data into train and test sets
-seed = 42
 test_size = 0.333333333
 train, test = train_test_split(df, test_size=test_size, random_state=seed)
 ```
@@ -161,6 +161,9 @@ data_lm.show_batch()
 
 ```python
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
+```
+
+```python
 learn.lr_find()
 ```
 
