@@ -38,6 +38,8 @@ from sklearn.model_selection import train_test_split
 # pandas doesn't understand ~, so provide full path
 base_path = Path('/home/jupyter/mimic')
 seed = 42
+# previously used 48; worked fine but never seemed to use even half of GPU memory; 64 still on the small side
+bs=128
 ```
 
 ```python
@@ -90,8 +92,7 @@ test.shape
 ```
 
 ```python
-# previously used 48; worked fine but never seemed to use even half of GPU memory
-bs=64
+
 ```
 
 <!-- #region -->
@@ -107,37 +108,41 @@ else:
 ```
 <!-- #endregion -->
 
-<!-- #region -->
 Code to build initial version of language model
 
-```python
-```
-<!-- #endregion -->
+Questions:
+
+* why does this only seem to use CPU? (applies to both both textclasdatabunch and textlist)
+* for 100% of the mimic noteevents data:
+  * run out of memory at 32 GB, error at 52 GB, trying 72GB now... got down to only 440MB free; if crash again, increase memory
+  * now at 20vCPU and 128GB RAM; ok up to 93%; got down to 22GB available
+  * succeeded with 20CPU and 128GB RAM...
+* try smaller batch size? will that reduce memory requirements?
+* with 10% dataset sample, it seems I could get by with perhaps 32GB system RAM
 
 ```python
-## why does this only seem to use CPU?
-# applies to both both textclasdatabunch and textlist...
-# for 100% of the mimic noteevents data:
-# run out of memory at 32 GB, error at 52 GB, trying 72GB now... got down to only 440MB free; if crash again, increase memory
-# now at 20vCPU and 128GB RAM; ok up to 93%; got down to 22GB available
-# succeeded with 20CPU and 128GB RAM...
-# try smaller batch size? will that reduce memory requirements?
-# with 10% dataset sample, it seems I could get by with perhaps 32GB system RAM
-data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
-           #We may have other temp folders that contain text files so we only keep what's in train and test
-           .split_by_rand_pct(0.1)
-           #We randomly split and keep 10% for validation
-           .label_for_lm()
-           #We want to do a language model so we label accordingly
-           .databunch(bs=bs))
+filename = base_path/'mimic_lm.pickle'
+file = 'mimic_lm.pickle'
+
+if os.path.isfile(filename):
+    data_lm = load_data(base_path, file, bs=bs)
+else:
+    data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
+               #We may have other temp folders that contain text files so we only keep what's in train and test
+               .split_by_rand_pct(0.1)
+               #We randomly split and keep 10% for validation
+               .label_for_lm()
+               #We want to do a language model so we label accordingly
+               .databunch(bs=bs))
+    data_lm.save(filename)
 ```
 
 ```python
-data_lm.save(base_path/'mimic_lm.pickle')
+
 ```
 
 ```python
-data_lm = load_data(base_path, 'mimic_lm.pickle', bs=bs)
+
 ```
 
 <!-- #region -->
@@ -198,6 +203,7 @@ learn.save(base_path/'mimic_fit_head.pickle')
 
 ```python
 learn.load(base_path/'mimic_fit_head.pickle')
+print('loaded learner')
 ```
 
 ```python
@@ -205,10 +211,23 @@ learn.unfreeze()
 ```
 
 ```python
-learn.fit_one_cycle(10, 5e-3, moms=(0.8,0.7))
+# at batch size of 128 takes about 1:14:00 per epoch
+#       GPU usage is about 14GB; RAM usage is about 10GB
+# at batch size of 96 takes about 1:17:00 per epoch
+#       GPU usage is about 9GB; RAM usage is about 10GB
+# at batch size of 48 takes about 1:30:00 per epoch
+#       GPU usage is about 5GB; RAM usage is about 10GB
+# would changing batch size improve training time? (larger batch size vs smaller batch size?)
+learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))
+# 8 cycles gets from about 62.7% accuracy to 67.6% accuracy
 ```
 
 ```python
+learn.save(base_path/'mimic_fine_tuned.pickle')
+```
+
+```python
+learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
 learn.save(base_path/'mimic_fine_tuned.pickle')
 ```
 
@@ -221,10 +240,13 @@ learn.load(base_path/'mimic_fine_tuned.pickle')
 TEXT = "For confirmation, she underwent CTA of the lung which was negative for pulmonary embolism"
 N_WORDS = 40
 N_SENTENCES = 2
-In [ ]:
 print("\n".join(learn.predict(TEXT, N_WORDS, temperature=0.75) for _ in range(N_SENTENCES)))
 ```
 
 ```python
 learn.save_encoder('mimic_fine_tuned_enc.pickle')
+```
+
+```python
+
 ```
