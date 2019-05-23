@@ -43,12 +43,6 @@ bs=128
 ```
 
 ```python
-# run this the first time to covert CSV to Pickle file
-df = pd.read_csv(base_path/'NOTEEVENTS.csv', low_memory=False, memory_map=True)
-df.to_pickle(base_path/'noteevents.pickle')
-```
-
-```python
 filename = base_path/'noteevents.pickle'
 
 if os.path.isfile(filename):
@@ -89,10 +83,6 @@ train.shape
 
 ```python
 test.shape
-```
-
-```python
-
 ```
 
 <!-- #region -->
@@ -137,14 +127,6 @@ else:
     data_lm.save(filename)
 ```
 
-```python
-
-```
-
-```python
-
-```
-
 <!-- #region -->
 If need to view more data, run appropriate line to make display wider/show more columns...
 ```python
@@ -170,9 +152,6 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 ```python
 learn.lr_find()
-```
-
-```python
 learn.recorder.plot(skip_end=15)
 ```
 
@@ -193,21 +172,70 @@ Full data set took about 13 hours using the Nvidia P1000; Full data set was pred
 # at start GPU using about 5GB RAM
 # after about 8 hours GPU using about 7.5GB RAM.
 # looks like I could increase batch size...
-# with bs=64, still only seems to be using about 7GB GPU RAM after running for 15 minutes. will check after a bit, but likely can increase batch size further
-learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
+# with bs=64, still only seems to be using about 7GB GPU RAM after running for 15 minutes. 
+# will check after a bit, but likely can increase batch size further
+
+filename = base_path/'mimic_fit_head'
+
+if os.path.isfile(filename):
+    learn.load(base_path/'mimic_fit_head')
+    print('loaded learner')
+else:
+    learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
+    learn.save(base_path/'mimic_fit_head.pickle')
 ```
 
 ```python
-learn.save(base_path/'mimic_fit_head.pickle')
+# pytorch automatically appends .pth to the filename, you cannot provide it
+learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
+learn.load(base_path/'mimic_fit_head')
+print('done')
 ```
 
 ```python
-learn.load(base_path/'mimic_fit_head.pickle')
-print('loaded learner')
+learn.show_results()
 ```
 
 ```python
+prev_cycles = 0
+cycles_file = base_path/'num_iterations.pickle'
+
+if os.path.isfile(cycles_file):
+    with open(cycles_file, 'rb') as f:
+        prev_cycles = pickle.load(f)
+print('This model has been trained for', prev_cycles, 'epochs already')
+```
+
+```python
+# if want to continue training existing model, set to True
+# if want to start fresh from the initialized language model, set to False
+continue_flag = False
+learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
+
+if continue_flag:
+    file = 'mimic_fine_tuned_' + str(prev_cycles)
+    learner_file = base_path/file
+    if os.path.isfile(str(learner_file) + '.pth'):
+        learn.load(learner_file)
+        print('loaded existing learner from ', str(learner_file))
+    else:
+        print('existing learner file not found')    
+else:
+    prev_cycles = 0
+
 learn.unfreeze()
+
+num_cycles = 2
+for n in range(num_cycles):
+    #learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
+    file = 'mimic_fine_tuned_' + str(prev_cycles + n + 1)
+    learner_file = base_path/file
+    learn.save(learner_file)
+    with open(cycles_file, 'wb') as f:
+        pickle.dump(num_cycles + prev_cycles, f)
+    
+print('completed', num_cycles, 'new training epochs')
+print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
 ```python
@@ -217,18 +245,23 @@ learn.unfreeze()
 #       GPU usage is about 9GB; RAM usage is about 10GB
 # at batch size of 48 takes about 1:30:00 per epoch
 #       GPU usage is about 5GB; RAM usage is about 10GB
-# would changing batch size improve training time? (larger batch size vs smaller batch size?)
+#
+# need to evalate how changing the learning rate would alter training time or accuracy
+
+
 learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))
 # 8 cycles gets from about 62.7% accuracy to 67.6% accuracy
 ```
 
 ```python
+learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
 learn.save(base_path/'mimic_fine_tuned.pickle')
 ```
 
 ```python
-learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
-learn.save(base_path/'mimic_fine_tuned.pickle')
+import glob
+print(os.getcwd())
+glob.glob(str(base_path/'mimic_fine_tuned*'))
 ```
 
 ```python
