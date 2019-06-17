@@ -42,11 +42,26 @@ seed = 42
 bs=128
 ```
 
+While parsing a CSV and converting to a dataframe is pretty fast, loading a pickle file is much faster.
+
+For load time and size comparison:
+* `NOTEEVENTS.csv` is ~ 3.8GB in size
+  ```
+  CPU times: user 51.2 s, sys: 17.6 s, total: 1min 8s
+  Wall time: 1min 47s
+  ```
+* `noteevents.pickle` is ~ 3.7 GB in size
+  ```
+  CPU times: user 2.28 s, sys: 3.98 s, total: 6.26 s
+  Wall time: 6.26 s
+  ```
+
 ```python
+%%time
+
 filename = base_path/'noteevents.pickle'
 
 if os.path.isfile(filename):
-    # this is much faster than reading a csv
     orig_df = pd.read_pickle(filename)
 else:
     print('Could not find noteevent pickle file; creating it')
@@ -54,6 +69,8 @@ else:
     orig_df = pd.read_csv(base_path/'NOTEEVENTS.csv', low_memory=False, memory_map=True)
     orig_df.to_pickle(filename)
 ```
+
+Due to data set size and performance reasons, working with a 10% sample. Use same random see to get same results from subsequent runs.
 
 ```python
 df = orig_df.sample(frac=0.1, random_state=seed)
@@ -71,8 +88,9 @@ df.dtypes
 df.shape
 ```
 
+Split data into train and test sets; using same random seed so subsequent runs will generate same result
+
 ```python
-# split data into train and test sets
 test_size = 0.333333333
 train, test = train_test_split(df, test_size=test_size, random_state=seed)
 ```
@@ -85,20 +103,7 @@ train.shape
 test.shape
 ```
 
-<!-- #region -->
-Code to reload previously built language model
-
-```python
-filename = base_path/'mimic_lm.pickle'
-
-if os.path.isfile(filename):
-    data_lm = load_data(base_path, 'mimic_lm.pickle', bs=bs)
-else:
-    print('Couldnt find file')
-```
-<!-- #endregion -->
-
-Code to build initial version of language model
+Code to build initial version of language model; If running with full dataset, requires a **LOT** of RAM; using a **LOT** of CPU helps it to happen quickly as well
 
 Questions:
 
@@ -110,7 +115,25 @@ Questions:
 * try smaller batch size? will that reduce memory requirements?
 * with 10% dataset sample, it seems I could get by with perhaps 32GB system RAM
 
+For comparison:
+* 10% langauge model is ~ 1.2 GB in size
+  * Time to load existing language model:
+    ```
+    CPU times: user 3.29 s, sys: 844 ms, total: 4.14 s
+    Wall time: 12.6 s
+    ```
+  * Time to build language model:
+* 100% language model is...
+  * Time to load existing language model:
+    ```
+    CPU times: user 3.29 s, sys: 844 ms, total: 4.14 s
+    Wall time: 12.6 s
+    ```
+  * Time to build language model:
+
 ```python
+%%time
+
 filename = base_path/'mimic_lm.pickle'
 file = 'mimic_lm.pickle'
 
@@ -118,8 +141,8 @@ if os.path.isfile(filename):
     data_lm = load_data(base_path, file, bs=bs)
 else:
     data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
-               #We may have other temp folders that contain text files so we only keep what's in train and test
-               .split_by_rand_pct(0.1)
+               #df has several columns; actual text is in column TEXT
+               .split_by_rand_pct(valid_pct=0.1, seed=seed)
                #We randomly split and keep 10% for validation
                .label_for_lm()
                #We want to do a language model so we label accordingly
