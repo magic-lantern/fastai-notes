@@ -362,12 +362,14 @@ else:
                #df has several columns; actual text is in column TEXT
                .split_by_rand_pct(valid_pct=0.1, seed=seed)
                #We randomly split and keep 10% for validation
-               .label_for_lm()
+               .label_from_df(cols='DESCRIPTION')
                #We want to do a language model so we label accordingly
                .databunch(bs=bs))
     data_lm.save(filename)
 ```
 
+<!-- #region -->
+This is the version from the original example
 ```python
 data_clas = (TextList.from_folder(path, vocab=data_lm.vocab)
              #grab all the text files in path
@@ -379,6 +381,7 @@ data_clas = (TextList.from_folder(path, vocab=data_lm.vocab)
 
 data_clas.save('data_clas.pkl')
 ```
+<!-- #endregion -->
 
 ```python
 learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
