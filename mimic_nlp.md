@@ -22,11 +22,16 @@ Instead will try to work with just 10% sample... Not sure that will work though
 
 A few notes:
 * See https://docs.fast.ai/text.transform.html#Tokenizer for details on what various artificial tokens (e.g xxup, xxmaj, etc.) mean
-* Due to a change in the markdown package private API, the 'doc' functionality (e.g. ` doc(learn.lr_find)`) is currently broken. See https://github.com/fastai/fastai/commit/21faa5d187b2cccf2a48315d183c2863ed2cdc50
+* To view nicely formatted documentation on the fastai library, run commands like: ` doc(learn.lr_find)`
+
+### To Do:
+* need to evalate how changing the learning rate would alter training time
+* need to evalate how changing the learning rate would alter accuracy
 
 ```python
 from fastai.text import *
 from sklearn.model_selection import train_test_split
+import glob
 ```
 
 ```python
@@ -125,17 +130,13 @@ For comparison:
   * Time to build language model:
 * 100% language model is...
   * Time to load existing language model:
-    ```
-    CPU times: user 3.29 s, sys: 844 ms, total: 4.14 s
-    Wall time: 12.6 s
-    ```
   * Time to build language model:
 
 ```python
 %%time
 
-filename = base_path/'mimic_lm.pickle'
 file = 'mimic_lm.pickle'
+filename = base_path/file
 
 if os.path.isfile(filename):
     data_lm = load_data(base_path, file, bs=bs)
@@ -170,6 +171,8 @@ data_lm.show_batch()
 ```
 
 ```python
+# as of June 2019, this automatically loads and initializes the model based on WT103 from
+# https://s3.amazonaws.com/fast-ai-modelzoo/wt103-fwd.tgz
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 ```
 
@@ -205,10 +208,12 @@ if os.path.isfile(filename):
     print('loaded learner')
 else:
     learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
-    learn.save(base_path/'mimic_fit_head.pickle')
+    learn.save(base_path/'mimic_fit_head')
+    print('generated new learner')
 ```
 
 ```python
+# continue from initial training - reload in case just want to continue processing from here
 # pytorch automatically appends .pth to the filename, you cannot provide it
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 learn.load(base_path/'mimic_fit_head')
@@ -229,66 +234,76 @@ if os.path.isfile(cycles_file):
 print('This model has been trained for', prev_cycles, 'epochs already')
 ```
 
+### Now fine tune language model
+
+Performance notes:
+
+* at batch size of 128 takes about 1:14:00 per epoch; GPU usage is about 14GB; RAM usage is about 10GB
+* at batch size of 96 takes about 1:17:00 per epoch; GPU usage is about  9GB; RAM usage is about 10GB
+* at batch size of 48 takes about 1:30:00 per epoch; GPU usage is about  5GB; RAM usage is about 10GB
+
+With `learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))` (8 cycles)
+* gets from about 62.7% accuracy to 67.6% accuracy
+* Total time: 9:54:16
+
 ```python
 # if want to continue training existing model, set to True
 # if want to start fresh from the initialized language model, set to False
-continue_flag = False
+# also, make sure to remove any previously created saved states before changing
+# flag back to continue
+continue_flag = True
+########################################################
+lm_base = 'mimic_lm_fine_tuned_'
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 if continue_flag:
-    file = 'mimic_fine_tuned_' + str(prev_cycles)
+    file = lm_base + str(prev_cycles)
     learner_file = base_path/file
     if os.path.isfile(str(learner_file) + '.pth'):
         learn.load(learner_file)
-        print('loaded existing learner from ', str(learner_file))
+        print('loaded existing learner from', str(learner_file))
     else:
-        print('existing learner file not found')    
+        # should not continue as could not find specified file
+        print('existing learner file not found')
+        assert(False)
 else:
     prev_cycles = 0
 
 learn.unfreeze()
 
+########################################################
+# set this to how many additional cycles you want to run
+########################################################
 num_cycles = 2
+########################################################
+
 for n in range(num_cycles):
     #learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
-    file = 'mimic_fine_tuned_' + str(prev_cycles + n + 1)
+    print('    ', n + 1, 'addtional run of fit_one_cycle complete')
+    file = lm_base + str(prev_cycles + n + 1)
     learner_file = base_path/file
     learn.save(learner_file)
     with open(cycles_file, 'wb') as f:
-        pickle.dump(num_cycles + prev_cycles, f)
+        pickle.dump(prev_cycles + n + 1, f)
     
 print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
 ```python
-# at batch size of 128 takes about 1:14:00 per epoch
-#       GPU usage is about 14GB; RAM usage is about 10GB
-# at batch size of 96 takes about 1:17:00 per epoch
-#       GPU usage is about 9GB; RAM usage is about 10GB
-# at batch size of 48 takes about 1:30:00 per epoch
-#       GPU usage is about 5GB; RAM usage is about 10GB
-#
-# need to evalate how changing the learning rate would alter training time or accuracy
 
-
-learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))
-# 8 cycles gets from about 62.7% accuracy to 67.6% accuracy
 ```
 
 ```python
-learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
-learn.save(base_path/'mimic_fine_tuned.pickle')
+fn_pattern = lm_base + '*'
+training_files = glob.glob(str(base_path/fn_pattern))
+training_files.sort()
+training_files
 ```
 
 ```python
-import glob
-print(os.getcwd())
-glob.glob(str(base_path/'mimic_fine_tuned*'))
-```
-
-```python
-learn.load(base_path/'mimic_fine_tuned.pickle')
+# need to load the last file
+learn.load(training_files[-1])
 ```
 
 ```python
@@ -300,7 +315,88 @@ print("\n".join(learn.predict(TEXT, N_WORDS, temperature=0.75) for _ in range(N_
 ```
 
 ```python
-learn.save_encoder('mimic_fine_tuned_enc.pickle')
+learn.save_encoder('mimic_fine_tuned_enc')
+```
+
+## Now based on our language model, train a classifier
+
+```python
+file = 'mimic_cl.pickle'
+filename = base_path/file
+
+if os.path.isfile(filename):
+    data_cl = load_data(base_path, file, bs=bs)
+else:
+    data_cl = (TextList.from_df(df, cols='', vocab=data_lm.vocab)
+               #grab all the text files in path
+               .split_by_folder(valid='test')
+               #split by train and valid folder (that only keeps 'train' and 'test' so no need to filter)
+               .label_from_folder(classes=['neg', 'pos'])
+               #label them all with their folders
+               .databunch(bs=bs))
+
+data_cl.save(filename)
+```
+
+```python
+df.head()
+```
+
+```python
+data_cl.show_batch()
+```
+
+```python
+len(df.CATEGORY.unique())
+```
+
+```python
+len(df.DESCRIPTION.unique())
+```
+
+```python
+if os.path.isfile(filename):
+    data_lm = load_data(base_path, file, bs=bs)
+else:
+    data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
+               #df has several columns; actual text is in column TEXT
+               .split_by_rand_pct(valid_pct=0.1, seed=seed)
+               #We randomly split and keep 10% for validation
+               .label_for_lm()
+               #We want to do a language model so we label accordingly
+               .databunch(bs=bs))
+    data_lm.save(filename)
+```
+
+```python
+data_clas = (TextList.from_folder(path, vocab=data_lm.vocab)
+             #grab all the text files in path
+             .split_by_folder(valid='test')
+             #split by train and valid folder (that only keeps 'train' and 'test' so no need to filter)
+             .label_from_folder(classes=['neg', 'pos'])
+             #label them all with their folders
+             .databunch(bs=bs))
+
+data_clas.save('data_clas.pkl')
+```
+
+```python
+learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
+learn.load_encoder('mimic_fine_tuned_enc')
+```
+
+```python
+learn.lr_find()
+```
+
+```python
+learn.recorder.plot()
+```
+
+Change learning rate based on results from the above plot
+
+```python
+learn.fit_one_cycle(1, 2e-2, moms=(0.8,0.7))
 ```
 
 ```python
