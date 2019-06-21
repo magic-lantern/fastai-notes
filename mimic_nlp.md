@@ -35,6 +35,17 @@ import glob
 ```
 
 ```python
+# files used during processing - all aggregated here
+notes_file = base_path/'noteevents.pickle'
+lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
+init_model_file = base_path/'mimic_fit_head'
+cycles_file = base_path/'num_iterations.pickle'
+lm_base_file = 'mimic_lm_fine_tuned_'
+enc_file = 'mimic_fine_tuned_enc'
+class_file = 'mimic_cl.pickle'
+```
+
+```python
 # run this to see what has already been imported
 #whos
 ```
@@ -64,15 +75,13 @@ For load time and size comparison:
 ```python
 %%time
 
-filename = base_path/'noteevents.pickle'
-
-if os.path.isfile(filename):
-    orig_df = pd.read_pickle(filename)
+if os.path.isfile(notes_file):
+    orig_df = pd.read_pickle(notes_file)
 else:
     print('Could not find noteevent pickle file; creating it')
     # run this the first time to covert CSV to Pickle file
     orig_df = pd.read_csv(base_path/'NOTEEVENTS.csv', low_memory=False, memory_map=True)
-    orig_df.to_pickle(filename)
+    orig_df.to_pickle(notes_file)
 ```
 
 Due to data set size and performance reasons, working with a 10% sample. Use same random see to get same results from subsequent runs.
@@ -96,7 +105,7 @@ df.shape
 Split data into train and test sets; using same random seed so subsequent runs will generate same result
 
 ```python
-test_size = 0.333333333
+test_size = 1./3
 train, test = train_test_split(df, test_size=test_size, random_state=seed)
 ```
 
@@ -135,10 +144,9 @@ For comparison:
 ```python
 %%time
 
-file = 'mimic_lm.pickle'
-filename = base_path/file
+tmpfile = base_path/lm_file
 
-if os.path.isfile(filename):
+if os.path.isfile(tmpfile):
     data_lm = load_data(base_path, file, bs=bs)
 else:
     data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
@@ -148,7 +156,7 @@ else:
                .label_for_lm()
                #We want to do a language model so we label accordingly
                .databunch(bs=bs))
-    data_lm.save(filename)
+    data_lm.save(tmpfile)
 ```
 
 <!-- #region -->
@@ -172,7 +180,7 @@ data_lm.show_batch()
 
 ```python
 # as of June 2019, this automatically loads and initializes the model based on WT103 from
-# https://s3.amazonaws.com/fast-ai-modelzoo/wt103-fwd.tgz
+# https://s3.amazonaws.com/fast-ai-modelzoo/wt103-fwd.tgz; will auto download if not already on disk
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 ```
 
@@ -201,14 +209,12 @@ Full data set took about 13 hours using the Nvidia P1000; Full data set was pred
 # with bs=64, still only seems to be using about 7GB GPU RAM after running for 15 minutes. 
 # will check after a bit, but likely can increase batch size further
 
-filename = base_path/'mimic_fit_head'
-
-if os.path.isfile(filename):
-    learn.load(base_path/'mimic_fit_head')
+if os.path.isfile(init_model_file):
+    learn.load(init_model_file)
     print('loaded learner')
 else:
     learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
-    learn.save(base_path/'mimic_fit_head')
+    learn.save(init_model_file)
     print('generated new learner')
 ```
 
@@ -216,7 +222,7 @@ else:
 # continue from initial training - reload in case just want to continue processing from here
 # pytorch automatically appends .pth to the filename, you cannot provide it
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
-learn.load(base_path/'mimic_fit_head')
+learn.load(init_model_file)
 print('done')
 ```
 
@@ -226,7 +232,6 @@ learn.show_results()
 
 ```python
 prev_cycles = 0
-cycles_file = base_path/'num_iterations.pickle'
 
 if os.path.isfile(cycles_file):
     with open(cycles_file, 'rb') as f:
@@ -253,11 +258,10 @@ With `learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))` (8 cycles)
 # flag back to continue
 continue_flag = True
 ########################################################
-lm_base = 'mimic_lm_fine_tuned_'
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 if continue_flag:
-    file = lm_base + str(prev_cycles)
+    file = lm_base_file + str(prev_cycles)
     learner_file = base_path/file
     if os.path.isfile(str(learner_file) + '.pth'):
         learn.load(learner_file)
@@ -280,7 +284,7 @@ num_cycles = 2
 for n in range(num_cycles):
     #learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
     print('    ', n + 1, 'addtional run of fit_one_cycle complete')
-    file = lm_base + str(prev_cycles + n + 1)
+    file = lm_base_file + str(prev_cycles + n + 1)
     learner_file = base_path/file
     learn.save(learner_file)
     with open(cycles_file, 'wb') as f:
@@ -295,7 +299,7 @@ print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
 ```python
-fn_pattern = lm_base + '*'
+fn_pattern = lm_base_file + '*'
 training_files = glob.glob(str(base_path/fn_pattern))
 training_files.sort()
 training_files
@@ -315,13 +319,22 @@ print("\n".join(learn.predict(TEXT, N_WORDS, temperature=0.75) for _ in range(N_
 ```
 
 ```python
-learn.save_encoder('mimic_fine_tuned_enc')
+learn.save_encoder(enc_file)
 ```
+
+<!-- #region -->
+To load the encoder:
+
+```python
+learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
+learn.load_encoder(enc_file)
+```
+<!-- #endregion -->
 
 ## Now based on our language model, train a classifier
 
 ```python
-file = 'mimic_cl.pickle'
+class_file = 'mimic_cl.pickle'
 filename = base_path/file
 
 if os.path.isfile(filename):
