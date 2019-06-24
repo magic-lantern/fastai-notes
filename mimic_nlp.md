@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.1'
-      jupytext_version: 1.1.2
+      jupytext_version: 1.1.6
   kernelspec:
     display_name: Python 3
     language: python
@@ -35,6 +35,9 @@ import glob
 ```
 
 ```python
+# pandas doesn't understand ~, so provide full path
+base_path = Path('/home/seth/mimic')
+
 # files used during processing - all aggregated here
 notes_file = base_path/'noteevents.pickle'
 lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
@@ -51,11 +54,9 @@ class_file = 'mimic_cl.pickle'
 ```
 
 ```python
-# pandas doesn't understand ~, so provide full path
-base_path = Path('/home/jupyter/mimic')
 seed = 42
 # previously used 48; worked fine but never seemed to use even half of GPU memory; 64 still on the small side
-bs=128
+bs=64
 ```
 
 While parsing a CSV and converting to a dataframe is pretty fast, loading a pickle file is much faster.
@@ -75,7 +76,9 @@ For load time and size comparison:
 ```python
 %%time
 
+orig_df = pd.DataFrame()
 if os.path.isfile(notes_file):
+    print('Loading noteevnt pickle file')
     orig_df = pd.read_pickle(notes_file)
 else:
     print('Could not find noteevent pickle file; creating it')
@@ -88,6 +91,11 @@ Due to data set size and performance reasons, working with a 10% sample. Use sam
 
 ```python
 df = orig_df.sample(frac=0.1, random_state=seed)
+```
+
+```python
+# if you want to free up some memory
+# orig_df = None
 ```
 
 ```python
@@ -137,6 +145,10 @@ For comparison:
     Wall time: 12.6 s
     ```
   * Time to build language model:
+    ```
+    CPU times: user 36.9 s, sys: 8.56 s, total: 45.4 s
+    Wall time: 3min 27s
+    ```
 * 100% language model is...
   * Time to load existing language model:
   * Time to build language model:
@@ -147,8 +159,10 @@ For comparison:
 tmpfile = base_path/lm_file
 
 if os.path.isfile(tmpfile):
-    data_lm = load_data(base_path, file, bs=bs)
+    print('loading existing langauge model')
+    data_lm = load_data(base_path, lm_file, bs=bs)
 else:
+    print('creating new language model')
     data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
                #df has several columns; actual text is in column TEXT
                .split_by_rand_pct(valid_pct=0.1, seed=seed)
@@ -335,7 +349,7 @@ learn.load_encoder(enc_file)
 
 ```python
 class_file = 'mimic_cl.pickle'
-filename = base_path/file
+filename = base_path/class_file
 
 if os.path.isfile(filename):
     data_cl = load_data(base_path, file, bs=bs)
@@ -398,7 +412,7 @@ data_clas.save('data_clas.pkl')
 
 ```python
 learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
-learn.load_encoder('mimic_fine_tuned_enc')
+learn.load_encoder(enc_file)
 ```
 
 ```python
