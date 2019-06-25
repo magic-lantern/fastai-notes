@@ -54,13 +54,11 @@ These next cells can be used to get an idea of the speed up provided by a GPU fo
 import torch
 t_cpu = torch.rand(500,500,500)
 %timeit t_cpu @ t_cpu
-```
-<!-- #endregion -->
-
-```python
+# separate cell 
 t_gpu = torch.rand(500,500,500).cuda()
 %timeit t_gpu @ t_gpu
 ```
+<!-- #endregion -->
 
 ```python
 # pandas doesn't understand ~, so provide full path
@@ -358,11 +356,11 @@ learn.unfreeze()
 ########################################################
 # set this to how many additional cycles you want to run
 ########################################################
-num_cycles = 2
+num_cycles = 3
 ########################################################
 
 for n in range(num_cycles):
-    #learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
+    learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
     print('    ', n + 1, 'addtional run of fit_one_cycle complete')
     file = lm_base_file + str(prev_cycles + n + 1)
     learner_file = base_path/file
