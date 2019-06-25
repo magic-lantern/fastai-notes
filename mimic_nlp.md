@@ -32,6 +32,34 @@ A few notes:
 from fastai.text import *
 from sklearn.model_selection import train_test_split
 import glob
+import gc
+```
+
+<!-- #region -->
+If you want to verify that Torch can find and use your GPU, run the following code:
+
+```python
+import torch
+
+print(torch.cuda.current_device())
+print(torch.cuda.device(0))
+print(torch.cuda.device_count())
+print(torch.cuda.get_device_name(0))
+```
+<!-- #endregion -->
+
+<!-- #region -->
+These next cells can be used to get an idea of the speed up provided by a GPU for some operations (from https://course.fast.ai/gpu_tutorial.html)
+```python
+import torch
+t_cpu = torch.rand(500,500,500)
+%timeit t_cpu @ t_cpu
+```
+<!-- #endregion -->
+
+```python
+t_gpu = torch.rand(500,500,500).cuda()
+%timeit t_gpu @ t_gpu
 ```
 
 ```python
@@ -49,14 +77,26 @@ class_file = 'mimic_cl.pickle'
 ```
 
 ```python
+# if this doesn't free memory, can restart Python kernel.
+# if that still doesn't work, try OS items mentioned here: https://docs.fast.ai/dev/gpu.html
+def release_mem():
+    gc.collect()
+    torch.cuda.empty_cache()
+```
+
+```python
 # run this to see what has already been imported
 #whos
 ```
 
+### Set Random Number seed for repeatability; set Batch Size to control GPU memory
+
+See **"Performance notes"** section below for how setting batch size impacts GPU memory
+
 ```python
 seed = 42
 # previously used 48; worked fine but never seemed to use even half of GPU memory; 64 still on the small side
-bs=64
+bs=48
 ```
 
 While parsing a CSV and converting to a dataframe is pretty fast, loading a pickle file is much faster.
@@ -96,6 +136,16 @@ df = orig_df.sample(frac=0.1, random_state=seed)
 ```python
 # if you want to free up some memory
 # orig_df = None
+# del orig_df
+gc.collect()
+```
+
+```python
+from pympler import asizeof
+print('df:', asizeof.asizeof(df))
+#print('orig_df:', asizeof.asizeof(orig_df))
+#print('data_lm:', asizeof.asizeof(data_lm, detail=1))
+#print asizeof.asized(obj, detail=1).format()
 ```
 
 ```python
@@ -199,15 +249,27 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 ```
 
 ```python
+release_mem()
+```
+
+```python
 learn.lr_find()
 learn.recorder.plot(skip_end=15)
 ```
 
 ### Initial model training
 
-Full data set took about 13 hours using the Nvidia P1000; Full data set was predicted to take about 25 hours with the T4
+Time to run:
 
-10% data is predicted to take about 1 hour (1:10) using the Nvidia P1000
+* Full data set took about 13 hours using the Nvidia P1000
+* Full data set was predicted to take about 25 hours with the T4
+* 10% data took about 1 hour (1:08) using the Nvidia P1000
+* 10% data is predicted to take about 2.5 hour (actual 2:42) using the Nvidia GTX 1060
+
+
+```python
+release_mem()
+```
 
 ```python
 # no idea how long nor how much resources this will take
@@ -233,6 +295,10 @@ else:
 ```
 
 ```python
+release_mem()
+```
+
+```python
 # continue from initial training - reload in case just want to continue processing from here
 # pytorch automatically appends .pth to the filename, you cannot provide it
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
@@ -255,7 +321,7 @@ print('This model has been trained for', prev_cycles, 'epochs already')
 
 ### Now fine tune language model
 
-Performance notes:
+Performance notes w/P100 GPU:
 
 * at batch size of 128 takes about 1:14:00 per epoch; GPU usage is about 14GB; RAM usage is about 10GB
 * at batch size of 96 takes about 1:17:00 per epoch; GPU usage is about  9GB; RAM usage is about 10GB
@@ -303,6 +369,7 @@ for n in range(num_cycles):
     learn.save(learner_file)
     with open(cycles_file, 'wb') as f:
         pickle.dump(prev_cycles + n + 1, f)
+    release_mem()
     
 print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
