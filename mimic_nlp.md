@@ -135,7 +135,7 @@ df = orig_df.sample(frac=0.1, random_state=seed)
 # if you want to free up some memory
 # orig_df = None
 # del orig_df
-gc.collect()
+# gc.collect()
 ```
 
 ```python
@@ -250,6 +250,8 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 release_mem()
 ```
 
+### Generate Learning rate graph.
+
 ```python
 learn.lr_find()
 learn.recorder.plot(skip_end=15)
@@ -283,7 +285,7 @@ release_mem()
 # with bs=64, still only seems to be using about 7GB GPU RAM after running for 15 minutes. 
 # will check after a bit, but likely can increase batch size further
 
-if os.path.isfile(init_model_file):
+if os.path.isfile(str(init_model_file) + '.pth'):
     learn.load(init_model_file)
     print('loaded learner')
 else:
@@ -296,12 +298,14 @@ else:
 release_mem()
 ```
 
+continue from initial training - reload in case just want to continue processing from here.
+
+As an FYI pytorch automatically appends .pth to the filename, you cannot provide it
+
 ```python
-# continue from initial training - reload in case just want to continue processing from here
-# pytorch automatically appends .pth to the filename, you cannot provide it
-learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
-learn.load(init_model_file)
-print('done')
+#learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
+#learn.load(init_model_file)
+#print('done')
 ```
 
 ```python
@@ -317,6 +321,7 @@ if os.path.isfile(cycles_file):
 print('This model has been trained for', prev_cycles, 'epochs already')
 ```
 
+<!-- #region -->
 ### Now fine tune language model
 
 Performance notes w/P100 GPU:
@@ -328,6 +333,28 @@ Performance notes w/P100 GPU:
 With `learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))` (8 cycles)
 * gets from about 62.7% accuracy to 67.6% accuracy
 * Total time: 9:54:16
+
+
+Output from first 3 runs:
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.828720 	1.741310 	0.646276 	3:03:05
+
+     1 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.736914 	1.701096 	0.652299 	3:03:00
+
+     2 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.699437 	1.677218 	0.655742 	3:03:02
+
+     3 addtional run of fit_one_cycle complete
+    completed 3 new training epochs
+    completed 3 total training epochs
+
+<!-- #endregion -->
 
 ```python
 # if want to continue training existing model, set to True
@@ -356,7 +383,7 @@ learn.unfreeze()
 ########################################################
 # set this to how many additional cycles you want to run
 ########################################################
-num_cycles = 3
+num_cycles = 4
 ########################################################
 
 for n in range(num_cycles):
