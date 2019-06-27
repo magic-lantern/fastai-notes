@@ -380,6 +380,33 @@ Output from next 4 runs:
     completed 4 new training epochs
     completed 7 total training epochs
 
+Output from next 4 runs:
+
+    loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_7
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.701067 	1.638409 	0.661831 	3:02:46
+
+         1 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.672565 	1.636598 	0.662079 	3:02:55
+
+         2 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.715523 	1.635751 	0.662418 	3:03:00
+
+         3 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.682663 	1.632025 	0.662714 	3:02:57
+
+         4 addtional run of fit_one_cycle complete
+    completed 4 new training epochs
+    completed 11 total training epochs
+
+
 
 <!-- #endregion -->
 
@@ -425,6 +452,10 @@ for n in range(num_cycles):
     
 print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
+```
+
+```python
+doc(learn.save)
 ```
 
 ```python
