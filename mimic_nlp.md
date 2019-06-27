@@ -353,6 +353,33 @@ Output from first 3 runs:
      3 addtional run of fit_one_cycle complete
     completed 3 new training epochs
     completed 3 total training epochs
+    
+Output from next 4 runs:
+
+    loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_3
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.693833 	1.664847 	0.658170 	3:03:05
+
+         1 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.745765 	1.653829 	0.659691 	3:02:57
+
+         2 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.741647 	1.648660 	0.660596 	3:02:53
+
+         3 addtional run of fit_one_cycle complete
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.672191 	1.643600 	0.661175 	3:02:40
+
+         4 addtional run of fit_one_cycle complete
+    completed 4 new training epochs
+    completed 7 total training epochs
+
 
 <!-- #endregion -->
 
