@@ -61,6 +61,11 @@ t_gpu = torch.rand(500,500,500).cuda()
 <!-- #endregion -->
 
 ```python
+# original data set too large to work with in reasonable time due to limted GPU resources
+pct_data_sample = 0.01
+# how much to hold out for validation
+valid_pct = 0.1
+
 # pandas doesn't understand ~, so provide full path
 base_path = Path('/home/seth/mimic')
 
@@ -128,7 +133,7 @@ else:
 Due to data set size and performance reasons, working with a 10% sample. Use same random see to get same results from subsequent runs.
 
 ```python
-df = orig_df.sample(frac=0.1, random_state=seed)
+df = orig_df.sample(frac=pct_data_sample, random_state=seed)
 ```
 
 ```python
@@ -140,7 +145,7 @@ df = orig_df.sample(frac=0.1, random_state=seed)
 
 ```python
 from pympler import asizeof
-print('df:', asizeof.asizeof(df))
+print('df:', int(asizeof.asizeof(df) / 1024 / 1024), 'MB')
 #print('orig_df:', asizeof.asizeof(orig_df))
 #print('data_lm:', asizeof.asizeof(data_lm, detail=1))
 #print asizeof.asized(obj, detail=1).format()
@@ -213,7 +218,7 @@ else:
     print('creating new language model')
     data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
                #df has several columns; actual text is in column TEXT
-               .split_by_rand_pct(valid_pct=0.1, seed=seed)
+               .split_by_rand_pct(valid_pct=valid_pct, seed=seed)
                #We randomly split and keep 10% for validation
                .label_for_lm()
                #We want to do a language model so we label accordingly
@@ -321,7 +326,6 @@ if os.path.isfile(cycles_file):
 print('This model has been trained for', prev_cycles, 'epochs already')
 ```
 
-<!-- #region -->
 ### Now fine tune language model
 
 Performance notes w/P100 GPU:
@@ -333,6 +337,17 @@ Performance notes w/P100 GPU:
 With `learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))` (8 cycles)
 * gets from about 62.7% accuracy to 67.6% accuracy
 * Total time: 9:54:16
+
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+    0 	1.926960 	1.832659 	0.627496 	1:14:14
+    1 	1.808083 	1.755725 	0.637424 	1:14:15
+    2 	1.747903 	1.697741 	0.645431 	1:14:15
+    3 	1.714081 	1.652703 	0.652703 	1:14:19
+    4 	1.637801 	1.602961 	0.660170 	1:14:15
+    5 	1.596906 	1.553225 	0.668557 	1:14:14
+    6 	1.572020 	1.519172 	0.674477 	1:14:26
+    7 	1.517364 	1.510010 	0.676342 	1:14:14
 
 
 Output from first 3 runs:
@@ -408,9 +423,10 @@ Output from next 4 runs:
 
 
 
-<!-- #endregion -->
 
 ```python
+print('now testing with differnt learning rate 5e-2')
+
 # if want to continue training existing model, set to True
 # if want to start fresh from the initialized language model, set to False
 # also, make sure to remove any previously created saved states before changing
@@ -420,6 +436,12 @@ continue_flag = True
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 if continue_flag:
+    # mostly a duplicate of the previous cell, but necessary to make sure if just this cell
+    # is run, everything works correctly in continue mode
+    if os.path.isfile(cycles_file):
+        with open(cycles_file, 'rb') as f:
+            prev_cycles = pickle.load(f)
+        print('This model has been trained for', prev_cycles, 'epochs already')    
     file = lm_base_file + str(prev_cycles)
     learner_file = base_path/file
     if os.path.isfile(str(learner_file) + '.pth'):
@@ -427,12 +449,10 @@ if continue_flag:
         print('loaded existing learner from', str(learner_file))
     else:
         # should not continue as could not find specified file
-        print('existing learner file not found')
+        print('existing learner file (', learner_file, 'not found')
         assert(False)
 else:
     prev_cycles = 0
-
-learn.unfreeze()
 
 ########################################################
 # set this to how many additional cycles you want to run
@@ -440,8 +460,18 @@ learn.unfreeze()
 num_cycles = 4
 ########################################################
 
+# learn.fit_one_cycle(4, 5e-2, moms=(0.8,0.7))
+# print('    ', n + 1, 'addtional run of fit_one_cycle complete')
+# file = lm_base_file + str(prev_cycles + n + 1)
+# learner_file = base_path/file
+# learn.save(learner_file)
+# with open(cycles_file, 'wb') as f:
+#     pickle.dump(prev_cycles + n + 1, f)
+# release_mem()
+
+
 for n in range(num_cycles):
-    learn.fit_one_cycle(1, 5e-3, moms=(0.8,0.7))
+    learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
     print('    ', n + 1, 'addtional run of fit_one_cycle complete')
     file = lm_base_file + str(prev_cycles + n + 1)
     learner_file = base_path/file
@@ -455,7 +485,8 @@ print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
 ```python
-doc(learn.save)
+with open(cycles_file, 'wb') as f:
+    pickle.dump(4, f)
 ```
 
 ```python
@@ -537,7 +568,7 @@ if os.path.isfile(filename):
 else:
     data_lm = (TextList.from_df(df, 'texts.csv', cols='TEXT')
                #df has several columns; actual text is in column TEXT
-               .split_by_rand_pct(valid_pct=0.1, seed=seed)
+               .split_by_rand_pct(valid_pct=valid_pct, seed=seed)
                #We randomly split and keep 10% for validation
                .label_from_df(cols='DESCRIPTION')
                #We want to do a language model so we label accordingly

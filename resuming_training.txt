@@ -1,0 +1,192 @@
+original 5e-3 
+ 
+ epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	2.042396 	1.987267 	0.605094 	13:02
+
+     1 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.971275 	1.913870 	0.614143 	13:03
+
+     2 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.910648 	1.882047 	0.619239 	13:01
+
+     3 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.822537 	1.861308 	0.622398 	13:01
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 4 total training epochs
+
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.833283 	1.851804 	0.624378 	13:02
+
+     1 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.775592 	1.840911 	0.625877 	13:05
+
+     2 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.748194 	1.831518 	0.626790 	13:05
+
+     3 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.786964 	1.825068 	0.628101 	13:06
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
+
+
+----------------------------------------------------------------------------------------
+
+now testing with unfreeze everytime
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.826565 	1.852310 	0.624204 	13:00
+
+     1 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.785213 	1.844443 	0.625706 	12:59
+
+     2 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.794629 	1.835849 	0.626677 	12:57
+
+     3 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.741489 	1.829098 	0.627903 	12:57
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
+
+--------------------------------------------------------------------------------------------------
+now testing with differnt learning rate 1e-2
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.759362 	1.853727 	0.623824 	10:55
+
+     1 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.778914 	1.848506 	0.623800 	10:54
+
+     2 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.766142 	1.847727 	0.623966 	10:54
+
+     3 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.725379 	1.845920 	0.624066 	10:54
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
+
+------------------------------------------------------------------------------------------------
+
+now testing with differnt learning rate 5e-2
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.953137 	1.990986 	0.607205 	10:55
+
+     1 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	2.021267 	1.992455 	0.607463 	10:54
+
+     2 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.949401 	1.994396 	0.606883 	10:54
+
+     3 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.982942 	1.994719 	0.607065 	10:55
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
+
+---------------------------------------------------------------------------------------------
+
+5e-2 4 continuous rather than 1, save, 1, save, etc.
+now testing with differnt learning rate 5e-2
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	2.404348 	2.412901 	0.563924 	10:56
+1 	2.399996 	2.375995 	0.566361 	10:54
+2 	1.960428 	2.031478 	0.601188 	10:55
+3 	1.814775 	1.883374 	0.619623 	10:56
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
+
+
+now testing with differnt learning rate 5e-2
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	2.410991 	2.418117 	0.565285 	10:56
+1 	2.315744 	2.375870 	0.566599 	10:56
+2 	2.025756 	2.034445 	0.600071 	10:56
+3 	1.756880 	1.882642 	0.620039 	10:56
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
+
+----------------------------------------------------------------------------------------------
+
+now testing with differnt learning rate 5e-2
+This model has been trained for 4 epochs already
+loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_4
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.997188 	1.990023 	0.607164 	10:56
+
+     1 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	2.023669 	1.993085 	0.607259 	10:55
+
+     2 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.949204 	1.991918 	0.607305 	10:54
+
+     3 addtional run of fit_one_cycle complete
+
+epoch 	train_loss 	valid_loss 	accuracy 	time
+0 	1.970876 	1.991939 	0.606908 	10:54
+
+     4 addtional run of fit_one_cycle complete
+completed 4 new training epochs
+completed 8 total training epochs
