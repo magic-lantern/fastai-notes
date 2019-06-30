@@ -424,7 +424,7 @@ Output from next 4 runs:
 
 
 
-```python
+<!-- #region -->
 print('now testing with differnt learning rate 5e-2')
 
 # if want to continue training existing model, set to True
@@ -446,6 +446,7 @@ if continue_flag:
     learner_file = base_path/file
     if os.path.isfile(str(learner_file) + '.pth'):
         learn.load(learner_file)
+        learn.unfreeze()
         print('loaded existing learner from', str(learner_file))
     else:
         # should not continue as could not find specified file
@@ -482,11 +483,58 @@ for n in range(num_cycles):
     
 print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
+<!-- #endregion -->
+
+<!-- #region -->
+print('now testing with multiple epochs and learning rate of 1e-3')
+num_cycles = 4
+prev_cycles = 4
+
+
+print('This model has been trained for', prev_cycles, 'epochs already')    
+file = lm_base_file + str(prev_cycles)
+learner_file = base_path/file
+learn.load(learner_file)
+learn.unfreeze()
+print('loaded existing learner from', str(learner_file))
+
+
+learn.fit_one_cycle(num_cycles, 1e-3, moms=(0.8,0.7))
+file = lm_base_file + str(prev_cycles + num_cycles + 1)
+learner_file = base_path/file
+learn.save(learner_file)
+release_mem()
+    
+print('completed', num_cycles, 'new training epochs')
+print('completed', num_cycles + prev_cycles, 'total training epochs')
+<!-- #endregion -->
+
+```python
+num_cycles = 4
+prev_cycles = 4
+
+for lr in [1e-3, 5e-3, 1e-2, 5e-2, 1e-1]:
+    print('now testing with multiple epochs and learning rate of', lr)
+    print('This model has been trained for', prev_cycles, 'epochs already')    
+    file = lm_base_file + str(prev_cycles)
+    learner_file = base_path/file
+    learn.load(learner_file)
+    learn.unfreeze()
+    print('loaded existing learner from', str(learner_file))
+
+
+    learn.fit_one_cycle(num_cycles, lr, moms=(0.8,0.7))
+    file = lm_base_file + str(prev_cycles + num_cycles + 1)
+    learner_file = base_path/file
+    learn.save(learner_file)
+    release_mem()
+
+    print('completed', num_cycles, 'new training epochs')
+    print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
 ```python
-with open(cycles_file, 'wb') as f:
-    pickle.dump(4, f)
+
 ```
 
 ```python
