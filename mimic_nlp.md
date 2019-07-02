@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.1'
-      jupytext_version: 1.1.6
+      jupytext_version: 1.1.2
   kernelspec:
     display_name: Python 3
     language: python
@@ -33,6 +33,7 @@ from fastai.text import *
 from sklearn.model_selection import train_test_split
 import glob
 import gc
+from pympler import asizeof
 ```
 
 <!-- #region -->
@@ -67,7 +68,7 @@ pct_data_sample = 0.01
 valid_pct = 0.1
 
 # pandas doesn't understand ~, so provide full path
-base_path = Path('/home/seth/mimic')
+base_path = Path.home() / 'mimic'
 
 # files used during processing - all aggregated here
 notes_file = base_path/'noteevents.pickle'
@@ -99,7 +100,7 @@ See **"Performance notes"** section below for how setting batch size impacts GPU
 ```python
 seed = 42
 # previously used 48; worked fine but never seemed to use even half of GPU memory; 64 still on the small side
-bs=48
+bs=96
 ```
 
 While parsing a CSV and converting to a dataframe is pretty fast, loading a pickle file is much faster.
@@ -121,7 +122,7 @@ For load time and size comparison:
 
 orig_df = pd.DataFrame()
 if os.path.isfile(notes_file):
-    print('Loading noteevnt pickle file')
+    print('Loading noteevent pickle file')
     orig_df = pd.read_pickle(notes_file)
 else:
     print('Could not find noteevent pickle file; creating it')
@@ -144,7 +145,6 @@ df = orig_df.sample(frac=pct_data_sample, random_state=seed)
 ```
 
 ```python
-from pympler import asizeof
 print('df:', int(asizeof.asizeof(df) / 1024 / 1024), 'MB')
 #print('orig_df:', asizeof.asizeof(orig_df))
 #print('data_lm:', asizeof.asizeof(data_lm, detail=1))
@@ -289,7 +289,10 @@ release_mem()
 # looks like I could increase batch size...
 # with bs=64, still only seems to be using about 7GB GPU RAM after running for 15 minutes. 
 # will check after a bit, but likely can increase batch size further
-
+#
+# note about number of epochs/cycle length: Using a value of 1 does a rapid increase and
+# decrease of learning rate and end result gets almost the save result as 2 but in half
+# the time
 if os.path.isfile(str(init_model_file) + '.pth'):
     learn.load(init_model_file)
     print('loaded learner')
