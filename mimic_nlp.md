@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.1'
-      jupytext_version: 1.1.2
+      jupytext_version: 1.1.7
   kernelspec:
     display_name: Python 3
     language: python
@@ -427,7 +427,7 @@ Output from next 4 runs:
 
 
 
-<!-- #region -->
+```python
 print('now testing with differnt learning rate 5e-2')
 
 # if want to continue training existing model, set to True
@@ -486,7 +486,7 @@ for n in range(num_cycles):
     
 print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
-<!-- #endregion -->
+```
 
 <!-- #region -->
 print('now testing with multiple epochs and learning rate of 1e-3')

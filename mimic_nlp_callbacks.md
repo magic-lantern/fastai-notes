@@ -191,7 +191,7 @@ Questions:
 * with 10% dataset sample, it seems I could get by with perhaps 32GB system RAM
 
 For comparison:
-* 10% langauge model is ~ 1.2 GB in size
+* 10% language model is ~ 1.2 GB in size
   * Time to load existing language model:
     ```
     CPU times: user 3.29 s, sys: 844 ms, total: 4.14 s
@@ -212,7 +212,7 @@ For comparison:
 tmpfile = base_path/lm_file
 
 if os.path.isfile(tmpfile):
-    print('loading existing langauge model')
+    print('loading existing language model')
     data_lm = load_data(base_path, lm_file, bs=bs)
 else:
     print('creating new language model')
@@ -258,8 +258,8 @@ release_mem()
 ### Generate Learning rate graph.
 
 ```python
-learn.lr_find()
-learn.recorder.plot(skip_end=15)
+#learn.lr_find()
+#learn.recorder.plot(skip_end=15)
 ```
 
 ### Initial model training
@@ -318,6 +318,11 @@ As an FYI pytorch automatically appends .pth to the filename, you cannot provide
 
 ```python
 learn.show_results()
+```
+
+```python
+with open(cycles_file, 'wb') as f:
+    pickle.dump(8, f)
 ```
 
 ```python
@@ -428,91 +433,113 @@ Output from next 4 runs:
 
 
 ```python
+def custom_learner_load(lf):
+    if os.path.isfile(str(lf) + '.pth'):
+        learn.load(lf)
+        print('loaded existing learner from', str(lf))
+    else:
+        # should not continue as could not find specified file
+        print('existing learner file (', lf, ') not found, cannot continue')
+        assert(False)
+    return learn
+```
+
+```python
 # if want to continue training existing model, set to True
 # if want to start fresh from the initialized language model, set to False
 # also, make sure to remove any previously created saved states before changing
 # flag back to continue
-continue_flag = True
+continue_flag = False
+# Resume interrupted training
+resume_flag = False
 ########################################################
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
-# if continue_flag:
-#     # mostly a duplicate of the previous cell, but necessary to make sure if just this cell
-#     # is run, everything works correctly in continue mode
-#     if os.path.isfile(cycles_file):
-#         with open(cycles_file, 'rb') as f:
-#             prev_cycles = pickle.load(f)
-#         print('This model has been trained for', prev_cycles, 'epochs already')    
-#     file = lm_base_file + str(prev_cycles)
-#     learner_file = base_path/file
-#     if os.path.isfile(str(learner_file) + '.pth'):
-#         learn.load(learner_file)
-#         learn.unfreeze()
-#         print('loaded existing learner from', str(learner_file))
-#     else:
-#         # should not continue as could not find specified file
-#         print('existing learner file (', learner_file, 'not found')
-#         assert(False)
-# else:
-#     prev_cycles = 0
-
 ########################################################
-# set this to how many additional cycles you want to run
-########################################################
+# set this to how many cycles you want to run
 num_cycles = 4
 ########################################################
 
-# learn.fit_one_cycle(4, 5e-2, moms=(0.8,0.7))
-# print('    ', n + 1, 'addtional run of fit_one_cycle complete')
-# file = lm_base_file + str(prev_cycles + n + 1)
-# learner_file = base_path/file
-# learn.save(learner_file)
-# with open(cycles_file, 'wb') as f:
-#     pickle.dump(prev_cycles + n + 1, f)
-# release_mem()
+if continue_flag:
+    if os.path.isfile(cycles_file):
+        with open(cycles_file, 'rb') as f:
+            prev_cycles = pickle.load(f)
+        print('This model has been trained for', prev_cycles, 'epochs already')  
+    file = lm_base_file + str(prev_cycles)
+else:
+    prev_cycles = 0
+    file = lm_base_file
+
+learner_file = base_path/file
+callback_save_file = str(learner_file) + '_auto'
 
 
+# for one cycle learning with learning rate annealing - where to resume from
+start_epoch = 0
 
+if resume_flag:
+    fn_pattern = callback_save_file + '*'
+    training_files = glob.glob(str(base_path/fn_pattern))
+    if len(training_files) > 0:
+        training_files.sort()
+        completed_cycles = int(re.split('_|\.', training_files[-1])[-2])
+        if completed_cycles < (num_cycles - 1):
+            # need to load the last file
+            print('Previous training cycle of', num_cycles, 'did not complete; finished',
+                  completed_cycles + 1, 'cycles. Loading last save...')
+            # load just filename, drop extension of .pth as that is automatically appended inside load function
+            learn.load(os.path.splitext(training_files[-1])[0])
+            start_epoch = completed_cycles + 1
+        else:
+            print('Previous training cycle of', num_cycles, 'completed fully.')
+            learn = custom_learner_load(learner_file)
+    else:
+        print('No auto save files exist from interupted training.')
+        if continue_flag:
+            learn = custom_learner_load(learner_file)
+        else:
+            print('Starting training with base language model')
+else:
+    if continue_flag:
+        learn = custom_learner_load(learner_file)
+    else:
+        print('Starting training with base language model')
+    # remove any auto saves
+    training_files = glob.glob(str(base_path/fn_pattern))
+    if len(training_files) > 0:
+        for f in training_files:
+            print('Deleting', f)
+            os.remove(f)
+
+# learn.unfreeze()
+# learn.fit_one_cycle(num_cycles, 5e-2, moms=(0.8,0.7),
+#                     callbacks=[
+#                         callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_save_file)
+#                     ], start_epoch=start_epoch)
 file = lm_base_file + str(prev_cycles + num_cycles)
 learner_file = base_path/file
-callback_file = str(learner_file) + '_auto'
-
-learn.fit_one_cycle(num_cycles, 5e-2, moms=(0.8,0.7), callbacks=[
-    callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_file)
-])
-
 learn.save(learner_file)
+
 with open(cycles_file, 'wb') as f:
-    pickle.dump(prev_cycles + num_cycles, f)
+    pickle.dump(num_cycles + prev_cycles, f)
 release_mem()
     
 print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
+    Total time: 18:06
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	2.915443 	2.784941 	0.499640 	04:30
+        1 	2.802181 	2.660058 	0.511305 	04:31
+        2 	2.507199 	2.407333 	0.537908 	04:31
+        3 	2.360105 	2.291246 	0.552453 	04:31
+
 <!-- #region -->
-print('now testing with multiple epochs and learning rate of 1e-3')
-num_cycles = 4
-prev_cycles = 4
+Use this block of code to compare how well a few different learning rates work
 
-
-print('This model has been trained for', prev_cycles, 'epochs already')    
-file = lm_base_file + str(prev_cycles)
-learner_file = base_path/file
-learn.load(learner_file)
-learn.unfreeze()
-print('loaded existing learner from', str(learner_file))
-
-
-learn.fit_one_cycle(num_cycles, 1e-3, moms=(0.8,0.7))
-file = lm_base_file + str(prev_cycles + num_cycles + 1)
-learner_file = base_path/file
-learn.save(learner_file)
-release_mem()
-    
-print('completed', num_cycles, 'new training epochs')
-print('completed', num_cycles + prev_cycles, 'total training epochs')
-<!-- #endregion -->
+Found that `5e-3` works best with `learn.unfreeze()`
 
 ```python
 num_cycles = 4
@@ -537,14 +564,7 @@ for lr in [1e-3, 5e-3, 1e-2, 5e-2, 1e-1]:
     print('completed', num_cycles, 'new training epochs')
     print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
-
-```python
-
-```
-
-```python
-
-```
+<!-- #endregion -->
 
 ```python
 fn_pattern = lm_base_file + '*'
