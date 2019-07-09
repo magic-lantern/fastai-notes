@@ -332,6 +332,14 @@ if os.path.isfile(cycles_file):
     with open(cycles_file, 'rb') as f:
         prev_cycles = pickle.load(f)
 print('This model has been trained for', prev_cycles, 'epochs already')
+
+
+```
+
+```python
+#temp_files = glob.glob(str(base_path/'*_auto_*'))
+#if len(training_files) > 0:
+glob.glob(str(base_path/'*_auto_*'))
 ```
 
 ### Now fine tune language model
@@ -356,82 +364,6 @@ With `learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))` (8 cycles)
     5 	1.596906 	1.553225 	0.668557 	1:14:14
     6 	1.572020 	1.519172 	0.674477 	1:14:26
     7 	1.517364 	1.510010 	0.676342 	1:14:14
-
-
-Output from first 3 runs:
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.828720 	1.741310 	0.646276 	3:03:05
-
-     1 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.736914 	1.701096 	0.652299 	3:03:00
-
-     2 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.699437 	1.677218 	0.655742 	3:03:02
-
-     3 addtional run of fit_one_cycle complete
-    completed 3 new training epochs
-    completed 3 total training epochs
-    
-Output from next 4 runs:
-
-    loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_3
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.693833 	1.664847 	0.658170 	3:03:05
-
-         1 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.745765 	1.653829 	0.659691 	3:02:57
-
-         2 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.741647 	1.648660 	0.660596 	3:02:53
-
-         3 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.672191 	1.643600 	0.661175 	3:02:40
-
-         4 addtional run of fit_one_cycle complete
-    completed 4 new training epochs
-    completed 7 total training epochs
-
-Output from next 4 runs:
-
-    loaded existing learner from /home/seth/mimic/mimic_lm_fine_tuned_7
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.701067 	1.638409 	0.661831 	3:02:46
-
-         1 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.672565 	1.636598 	0.662079 	3:02:55
-
-         2 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.715523 	1.635751 	0.662418 	3:03:00
-
-         3 addtional run of fit_one_cycle complete
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	1.682663 	1.632025 	0.662714 	3:02:57
-
-         4 addtional run of fit_one_cycle complete
-    completed 4 new training epochs
-    completed 11 total training epochs
-
-
-
-
 ```python
 def custom_learner_load(lf):
     if os.path.isfile(str(lf) + '.pth'):
@@ -457,7 +389,7 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 ########################################################
 # set this to how many cycles you want to run
-num_cycles = 4
+num_cycles = 2
 ########################################################
 
 if continue_flag:
@@ -472,13 +404,13 @@ else:
 
 learner_file = base_path/file
 callback_save_file = str(learner_file) + '_auto'
+fn_pattern = callback_save_file + '*'
 
 
 # for one cycle learning with learning rate annealing - where to resume from
 start_epoch = 0
 
 if resume_flag:
-    fn_pattern = callback_save_file + '*'
     training_files = glob.glob(str(base_path/fn_pattern))
     if len(training_files) > 0:
         training_files.sort()
@@ -511,11 +443,11 @@ else:
             print('Deleting', f)
             os.remove(f)
 
-# learn.unfreeze()
-# learn.fit_one_cycle(num_cycles, 5e-2, moms=(0.8,0.7),
-#                     callbacks=[
-#                         callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_save_file)
-#                     ], start_epoch=start_epoch)
+learn.unfreeze()
+learn.fit_one_cycle(num_cycles, 5e-3, moms=(0.8,0.7),
+                    callbacks=[
+                        callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_save_file)
+                    ], start_epoch=start_epoch)
 file = lm_base_file + str(prev_cycles + num_cycles)
 learner_file = base_path/file
 learn.save(learner_file)
@@ -565,18 +497,6 @@ for lr in [1e-3, 5e-3, 1e-2, 5e-2, 1e-1]:
     print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 <!-- #endregion -->
-
-```python
-fn_pattern = lm_base_file + '*'
-training_files = glob.glob(str(base_path/fn_pattern))
-training_files.sort()
-training_files
-```
-
-```python
-# need to load the last file
-learn.load(training_files[-1])
-```
 
 ```python
 # test the language generation capabilities of this model (not the point, but is interesting)
