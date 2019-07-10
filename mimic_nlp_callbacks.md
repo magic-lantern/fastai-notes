@@ -339,7 +339,9 @@ print('This model has been trained for', prev_cycles, 'epochs already')
 ```python
 #temp_files = glob.glob(str(base_path/'*_auto_*'))
 #if len(training_files) > 0:
-glob.glob(str(base_path/'*_auto_*'))
+rfiles = glob.glob(str(base_path/'*_auto_*'))
+if (len(rfiles) > 0):
+    print('There are pre-existing automatic save states. Remove these files if no longer needed.')
 ```
 
 ### Now fine tune language model
@@ -381,9 +383,9 @@ def custom_learner_load(lf):
 # if want to start fresh from the initialized language model, set to False
 # also, make sure to remove any previously created saved states before changing
 # flag back to continue
-continue_flag = False
+continue_flag = True
 # Resume interrupted training
-resume_flag = False
+resume_flag = True
 ########################################################
 learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
@@ -391,17 +393,16 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 # set this to how many cycles you want to run
 num_cycles = 2
 ########################################################
-
+lm_base_file = 'mimic_lm_fine_tuned_'
 if continue_flag:
     if os.path.isfile(cycles_file):
         with open(cycles_file, 'rb') as f:
             prev_cycles = pickle.load(f)
         print('This model has been trained for', prev_cycles, 'epochs already')  
-    file = lm_base_file + str(prev_cycles)
 else:
     prev_cycles = 0
-    file = lm_base_file
 
+file = lm_base_file + str(prev_cycles)
 learner_file = base_path/file
 callback_save_file = str(learner_file) + '_auto'
 fn_pattern = callback_save_file + '*'
@@ -446,8 +447,11 @@ else:
 learn.unfreeze()
 learn.fit_one_cycle(num_cycles, 5e-3, moms=(0.8,0.7),
                     callbacks=[
-                        callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_save_file)
-                    ], start_epoch=start_epoch)
+                        callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_save_file),
+                        callbacks.CSVLogger(learn, filename='mimic_lm_fine_tune_history', append=True),
+                        callbacks.EarlyStoppingCallback(learn, monitor='accuracy', min_delta=0.005, patience=5)])
+                    ],
+                    start_epoch=start_epoch)
 file = lm_base_file + str(prev_cycles + num_cycles)
 learner_file = base_path/file
 learn.save(learner_file)
