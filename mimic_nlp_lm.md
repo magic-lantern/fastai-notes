@@ -12,7 +12,7 @@ jupyter:
     name: python3
 ---
 
-## Using FAST.AI for Medical NLP
+## Using FAST.AI for Medical NLP - Step 1 Build a langauge model
 
 Exploring the MIMIC III data set medical notes.
 
@@ -63,7 +63,7 @@ t_gpu = torch.rand(500,500,500).cuda()
 
 ```python
 # original data set too large to work with in reasonable time due to limted GPU resources
-pct_data_sample = 0.01
+pct_data_sample = 0.1
 # how much to hold out for validation
 valid_pct = 0.1
 
@@ -163,21 +163,6 @@ df.dtypes
 df.shape
 ```
 
-Split data into train and test sets; using same random seed so subsequent runs will generate same result
-
-```python
-test_size = 1./3
-train, test = train_test_split(df, test_size=test_size, random_state=seed)
-```
-
-```python
-train.shape
-```
-
-```python
-test.shape
-```
-
 Code to build initial version of language model; If running with full dataset, requires a **LOT** of RAM; using a **LOT** of CPU helps it to happen quickly as well
 
 Questions:
@@ -258,8 +243,8 @@ release_mem()
 ### Generate Learning rate graph.
 
 ```python
-#learn.lr_find()
-#learn.recorder.plot(skip_end=15)
+learn.lr_find()
+learn.recorder.plot(skip_end=15)
 ```
 
 ### Initial model training
@@ -332,8 +317,6 @@ if os.path.isfile(cycles_file):
     with open(cycles_file, 'rb') as f:
         prev_cycles = pickle.load(f)
 print('This model has been trained for', prev_cycles, 'epochs already')
-
-
 ```
 
 ```python
@@ -388,7 +371,7 @@ def custom_learner_load(lf):
 # if want to start fresh from the initialized language model, set to False
 # also, make sure to remove any previously created saved states before changing
 # flag back to continue
-continue_flag = True
+continue_flag = False
 # Resume interrupted training
 resume_flag = True
 ########################################################
@@ -396,7 +379,7 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 ########################################################
 # set this to how many cycles you want to run
-num_cycles = 2
+num_cycles = 15
 ########################################################
 lm_base_file = 'mimic_lm_fine_tuned_'
 if continue_flag:
@@ -470,21 +453,9 @@ print('completed', num_cycles, 'new training epochs')
 print('completed', num_cycles + prev_cycles, 'total training epochs')
 ```
 
-```python
-file = lm_base_file + str(prev_cycles + num_cycles)
-learner_file = base_path/file
-learner_file
-```
-
-    Total time: 18:06
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	2.915443 	2.784941 	0.499640 	04:30
-        1 	2.802181 	2.660058 	0.511305 	04:31
-        2 	2.507199 	2.407333 	0.537908 	04:31
-        3 	2.360105 	2.291246 	0.552453 	04:31
-
 <!-- #region -->
+### Evaluate different learning rates.
+
 Use this block of code to compare how well a few different learning rates work
 
 Found that `5e-3` works best with `learn.unfreeze()`
