@@ -24,10 +24,6 @@ A few notes:
 * See https://docs.fast.ai/text.transform.html#Tokenizer for details on what various artificial tokens (e.g xxup, xxmaj, etc.) mean
 * To view nicely formatted documentation on the fastai library, run commands like: ` doc(learn.lr_find)`
 
-### To Do:
-* need to evalate how changing the learning rate would alter training time
-* need to evalate how changing the learning rate would alter accuracy
-
 ```python
 from fastai.text import *
 from sklearn.model_selection import train_test_split
@@ -379,7 +375,7 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 
 ########################################################
 # set this to how many cycles you want to run
-num_cycles = 15
+num_cycles = 10
 ########################################################
 lm_base_file = 'mimic_lm_fine_tuned_'
 if continue_flag:
@@ -438,7 +434,7 @@ learn.fit_one_cycle(num_cycles, 5e-3, moms=(0.8,0.7),
                         callbacks.SaveModelCallback(learn, every='epoch', monitor='accuracy', name=callback_save_file),
                         # CSVLogger only logs when num_cycles are complete
                         callbacks.CSVLogger(learn, filename='mimic_lm_fine_tune_history', append=True),
-                        callbacks.EarlyStoppingCallback(learn, monitor='accuracy', min_delta=0.005, patience=5)
+                        callbacks.EarlyStoppingCallback(learn, monitor='accuracy', min_delta=0.0025, patience=5)
                     ],
                     start_epoch=start_epoch)
 file = lm_base_file + str(prev_cycles + num_cycles)
