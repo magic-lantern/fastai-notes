@@ -73,7 +73,6 @@ init_model_file = base_path/'mimic_fit_head'
 cycles_file = base_path/'num_iterations.pickle'
 lm_base_file = 'mimic_lm_fine_tuned_'
 enc_file = 'mimic_fine_tuned_enc'
-class_file = 'mimic_cl.pickle'
 ```
 
 ```python
@@ -340,14 +339,37 @@ With `learn.fit_one_cycle(8, 5e-3, moms=(0.8,0.7))` (8 cycles)
 
 
     epoch 	train_loss 	valid_loss 	accuracy 	time
-    0 	1.926960 	1.832659 	0.627496 	1:14:14
-    1 	1.808083 	1.755725 	0.637424 	1:14:15
-    2 	1.747903 	1.697741 	0.645431 	1:14:15
-    3 	1.714081 	1.652703 	0.652703 	1:14:19
-    4 	1.637801 	1.602961 	0.660170 	1:14:15
-    5 	1.596906 	1.553225 	0.668557 	1:14:14
-    6 	1.572020 	1.519172 	0.674477 	1:14:26
-    7 	1.517364 	1.510010 	0.676342 	1:14:14
+        0 	1.926960 	1.832659 	0.627496 	1:14:14
+        1 	1.808083 	1.755725 	0.637424 	1:14:15
+        2 	1.747903 	1.697741 	0.645431 	1:14:15
+        3 	1.714081 	1.652703 	0.652703 	1:14:19
+        4 	1.637801 	1.602961 	0.660170 	1:14:15
+        5 	1.596906 	1.553225 	0.668557 	1:14:14
+        6 	1.572020 	1.519172 	0.674477 	1:14:26
+        7 	1.517364 	1.510010 	0.676342 	1:14:14
+    
+    
+With `learn.fit_one_cycle(num_cycles, 5e-3, moms=(0.8,0.7)` (10 cycles)
+* batch size `bs=96`
+* Total time: 12:17:26
+
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	1.876292 	1.813362 	0.630908 	1:13:40
+        1 	1.816879 	1.770555 	0.635667 	1:13:41
+        2 	1.833764 	1.769055 	0.635783 	1:13:45
+        3 	1.765977 	1.729675 	0.641041 	1:13:43
+        4 	1.672098 	1.683195 	0.648317 	1:13:52
+        5 	1.639705 	1.637336 	0.655466 	1:13:43
+        6 	1.600122 	1.589719 	0.663033 	1:13:45
+        7 	1.529386 	1.546841 	0.670321 	1:13:43
+        8 	1.527369 	1.518421 	0.675460 	1:13:41
+        9 	1.512422 	1.511458 	0.676779 	1:13:42
+
+    completed 10 new training epochs
+    completed 10 total training epochs
+
+Interesting to note, training for fewer epochs with the one cycle policy results in faster training. In either case, as the validation loss is still improving, can continue to train more to improve model.
 ```python
 def custom_learner_load(lf):
     if os.path.isfile(str(lf) + '.pth'):
