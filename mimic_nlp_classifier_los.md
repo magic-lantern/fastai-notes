@@ -33,14 +33,12 @@ base_path = Path.home() / 'mimic'
 admissions_file = base_path/'ADMISSIONS.csv'
 notes_file = base_path/'NOTEEVENTS.csv'
 
-class_file = 'mimic_cl.pickle'
+class_file = 'mimic_cl_los.pickle'
 notes_pickle_file = base_path/'noteevents.pickle'
 data_lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
-init_model_file = base_path/'mimic_fit_head'
+init_model_file = base_path/'los_cl_head'
 cycles_file = base_path/'cl_num_iterations.pickle'
-lm_base_file = 'mimic_lm_fine_tuned_'
 enc_file = 'mimic_fine_tuned_enc'
-class_file = 'mimic_cl.pickle'
 ```
 
 Setup parameters for models
@@ -85,32 +83,14 @@ df.head()
 ```
 
 ```python
-print('Unique Categories:', len(df.CATEGORY.unique()))
-print('Unique Descriptions:', len(df.DESCRIPTION.unique()))
-```
-
-<!-- #region -->
-Original section from lesson3
-```python
-data_clas = (TextList.from_folder(path, vocab=data_lm.vocab)
-             #grab all the text files in path
-             .split_by_folder(valid='test')
-             #split by train and valid folder (that only keeps 'train' and 'test' so no need to filter)
-             .label_from_folder(classes=['neg', 'pos'])
-             #label them all with their folders
-             .databunch(bs=bs))
-
-data_clas.save('data_clas.pkl')
-```
-<!-- #endregion -->
-
-```python
 if os.path.isfile(base_path/data_lm_file):
     print('loading existing language model')
     data_lm = load_data(base_path, data_lm_file, bs=bs)
 else:
     print('ERROR: language model file not found.')
 ```
+
+#### This is a very CPU and RAM intensive process - no GPU involved
 
 ```python
 filename = base_path/class_file
