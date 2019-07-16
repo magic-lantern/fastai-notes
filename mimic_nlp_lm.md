@@ -399,7 +399,7 @@ learn = language_model_learner(data_lm, AWD_LSTM, drop_mult=0.3)
 # set this to how many cycles you want to run
 num_cycles = 10
 ########################################################
-lm_base_file = 'mimic_lm_fine_tuned_'
+
 if continue_flag:
     if os.path.isfile(cycles_file):
         with open(cycles_file, 'rb') as f:

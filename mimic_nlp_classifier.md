@@ -169,6 +169,7 @@ learn.unfreeze()
 
 Steps:
 1. Load Admissions data
+1. Calculate Length of Stay
 1. Join Admissions data with Notes data (on HADM_ID) - Columns needed for classifier: LOS, TEXT
 
 Would also be nice to see a graphical summary of LOS.
@@ -199,6 +200,32 @@ alt.Chart(a_df.head(1000)).mark_bar().encode(
          bin=alt.BinParams(maxbins=50)),
     y='count()',
 )
+```
+
+```python
+notes_df = orig_df[orig_df.HADM_ID.notnull()].sample(frac=pct_data_sample, random_state=seed)
+notes_df.HADM_ID = notes_df.HADM_ID.astype(int)
+notes_df.shape
+```
+
+```python
+# make sure we only keep rows with notes
+combined_df = pd.merge(a_df, notes_df, on='HADM_ID', how='right')
+```
+
+```python
+combined_df.shape
+```
+
+```python
+# these should all be zero
+print(combined_df[combined_df.los.isnull()].shape)
+print(combined_df[combined_df.HADM_ID.isnull()].shape)
+print(combined_df[combined_df.TEXT.isnull()].shape)
+```
+
+```python
+combined_df.head()
 ```
 
 ```python
