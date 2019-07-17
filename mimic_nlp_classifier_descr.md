@@ -35,7 +35,7 @@ notes_file = base_path/'NOTEEVENTS.csv'
 
 class_file = 'descr_cl_data.pickle'
 notes_pickle_file = base_path/'noteevents.pickle'
-data_lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
+lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
 init_model_file = base_path/'descr_cl_head'
 cycles_file = base_path/'descr_cl_num_iterations.pickle'
 enc_file = 'mimic_fine_tuned_enc'
@@ -51,11 +51,11 @@ pct_data_sample = 0.1
 valid_pct = 0.2
 # for repeatability - different seed than used with language model
 seed = 1776
-# for language model building - not sure how this will translate to classifier
-# batch size of 128 GPU uses 14GB RAM
-# batch size of 96 GPU uses 9GB RAM
-# batch size of 48 GPU uses 5GB RAM
-bs=96
+# batch size of 96 GPU needs more than 16GB RAM
+# batch size of 64 GPU uses 16GB RAM
+# batch size of 48 GPU uses ??GB RAM
+# changing batch size affects learning rate
+bs=64
 ```
 
 ```python
@@ -113,9 +113,9 @@ data_clas.save('data_clas.pkl')
 <!-- #endregion -->
 
 ```python
-if os.path.isfile(base_path/data_lm_file):
+if os.path.isfile(base_path/lm_file):
     print('loading existing language model')
-    data_lm = load_data(base_path, data_lm_file, bs=bs)
+    lm = load_data(base_path, lm_file, bs=bs)
 else:
     print('ERROR: language model file not found.')
 ```
@@ -130,7 +130,7 @@ if os.path.isfile(filename):
     data_cl = load_data(base_path, class_file, bs=bs)
 else:
     # do I need a vocab here? test with and without...
-    data_cl = (TextList.from_df(df, base_path, cols='TEXT', vocab=data_lm.vocab)
+    data_cl = (TextList.from_df(df, base_path, cols='TEXT', vocab=lm.vocab)
                #df has several columns; actual text is in column TEXT
                .split_by_rand_pct(valid_pct=valid_pct, seed=seed)
                #We randomly split and keep 20% for validation, set see for repeatability
@@ -149,11 +149,18 @@ learn.load_encoder(enc_file)
 learn.lr_find()
 ```
 
+This rate will vary based on batch size. 
+
+      For bs=96, 5e-2 worked well.
+      For bs=48, looks like 1e-1 would work
+
 ```python
 learn.recorder.plot()
 ```
 
 Change learning rate based on results from the above plot
+
+First unfrozen training results in approximately 90% accuracy
 
 ```python
 if os.path.isfile(str(init_model_file) + '.pth'):
