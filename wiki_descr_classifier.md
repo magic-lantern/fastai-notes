@@ -12,9 +12,9 @@ jupyter:
     name: python3
 ---
 
-# Based on our custom MIMIC language model, train a 'DESCRIPTION' classifier
+# Based on general purpose language model, train a 'DESCRIPTION' classifier
 
-Make sure mimic_nlp_lm has been run first and sucessfully completed. That notebook builds the language model that allows classificiation to occur.
+Instead of building from a MIMIC trained language model, use the general purpose ULMFit Wiki trained model
 
 ```python
 from fastai.text import *
@@ -33,13 +33,13 @@ base_path = Path.home() / 'mimic'
 admissions_file = base_path/'ADMISSIONS.csv'
 notes_file = base_path/'NOTEEVENTS.csv'
 
-class_file = 'descr_cl_data.pickle'
+class_file = 'wiki_cl_data.pickle'
 notes_pickle_file = base_path/'noteevents.pickle'
 lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
-init_model_file = base_path/'descr_cl_head'
-cycles_file = base_path/'descr_cl_num_iterations.pickle'
+init_model_file = base_path/'wiki_cl_head'
+cycles_file = base_path/'wiki_cl_num_iterations.pickle'
 enc_file = 'mimic_fine_tuned_enc'
-descr_ft_file = 'descr_cl_fine_tuned_'
+descr_ft_file = 'wiki_cl_fine_tuned_'
 ```
 
 Setup parameters for models
@@ -160,19 +160,7 @@ learn.recorder.plot()
 
 Change learning rate based on results from the above plot
 
-First unfrozen training results in approximately 90% accuracy with `learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))`
-
-    Total time: 19:53
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	0.563492 	0.433682 	0.904776 	19:53
-        
-By comparison, a smaller learning rate takes longer to get to similar accuracy (`learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))`)
-
-    Total time: 25:38
-
-    epoch 	train_loss 	valid_loss 	accuracy 	time
-        0 	0.451051 	0.413487 	0.909619 	25:38
+First unfrozen training results in approximately 90% accuracy
 
 ```python
 if os.path.isfile(str(init_model_file) + '.pth'):
@@ -180,7 +168,7 @@ if os.path.isfile(str(init_model_file) + '.pth'):
     print('loaded initial learner')
 else:
     print('Training new initial learner')
-    learn.fit_one_cycle(3, 1e-1, moms=(0.8,0.7))
+    learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
     print('Saving new learner')
     learn.save(init_model_file)
     print('Finished generating new learner')
@@ -189,33 +177,7 @@ else:
 Now need to fine tune
 
 ```python
-learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
-learn.load_encoder(enc_file)
-learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
-```
-
-```python
-learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
-learn.load_encoder(enc_file)
-learn.fit_one_cycle(3, 1e-1, moms=(0.8,0.7))
-```
-
-```python
-learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
-learn.load_encoder(enc_file)
-learn.fit_one_cycle(3, 5e-2, moms=(0.8,0.7))
-```
-
-```python
-
-```
-
-```python
 learn.unfreeze()
-```
-
-```python
-learn.recorder.plot()
 ```
 
 ```python
