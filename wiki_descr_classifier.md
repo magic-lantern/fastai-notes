@@ -35,10 +35,10 @@ notes_file = base_path/'NOTEEVENTS.csv'
 
 class_file = 'wiki_cl_data.pickle'
 notes_pickle_file = base_path/'noteevents.pickle'
-lm_file = 'mimic_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
+lm_file = 'cl_lm.pickle' # actual file is at base_path/lm_file but due to fastai function, have to pass file name separately
 init_model_file = base_path/'wiki_cl_head'
 cycles_file = base_path/'wiki_cl_num_iterations.pickle'
-enc_file = 'mimic_fine_tuned_enc'
+enc_file = 'wiki_cl_enc'
 descr_ft_file = 'wiki_cl_fine_tuned_'
 ```
 
@@ -80,10 +80,6 @@ else:
     orig_df.to_pickle(notes_pickle_file)
 ```
 
-Since seed is different, this should be quite different than the language model dataset.
-
-Should I show details on how many records are in language model dataset?
-
 ```python
 df = orig_df.sample(frac=pct_data_sample, random_state=seed)
 ```
@@ -112,40 +108,33 @@ data_clas.save('data_clas.pkl')
 ```
 <!-- #endregion -->
 
-```python
-data_lm = TextLMDataBunch.from_csv(path, 'texts.csv')
-```
+### Normally you would use transfer learning to adjust the language model to the new data.
+
+In this case, I just want to test how the classifier would work without fine-tuning the language model
 
 ```python
-#tmp = load_data('/home/jupyter/models/wt103-fwd/', 'itos_wt103.pkl', bs=bs)
+%%time
 
-with (open("/home/jupyter/models/wt103-fwd/itos_wt103.pkl", "rb")) as openfile:
-    itos_wt103 = pickle.load(openfile)
-```
+tmpfile = base_path/lm_file
 
-```python
-len(itos_wt103)
-```
-
-```python
-with (open("/home/jupyter/models/wt103-fwd/lstm_fwd.pth", "rb")) as openfile:
-    wt = pickle.load(openfile)
-```
-
-```python
-type(wt)
-```
-
-```python
-if os.path.isfile(base_path/lm_file):
+if os.path.isfile(tmpfile):
     print('loading existing language model')
     lm = load_data(base_path, lm_file, bs=bs)
 else:
-    print('ERROR: language model file not found.')
+    print('creating new language model')
+    lm = (TextList.from_df(df, base_path, cols='TEXT')
+               #df has several columns; actual text is in column TEXT
+               .split_by_rand_pct(valid_pct=valid_pct, seed=seed)
+               #We randomly split and keep 10% for validation
+               .label_for_lm()
+               #We want to do a language model so we label accordingly
+               .databunch(bs=bs))
+    lm.save(tmpfile)
 ```
 
 ```python
-len(lm.vocab.itos)
+learn = language_model_learner(lm, AWD_LSTM, drop_mult=0.3)
+learn.save_encoder(enc_file)
 ```
 
 #### This is a very CPU and RAM intensive process - no GPU involved
@@ -158,7 +147,7 @@ if os.path.isfile(filename):
     data_cl = load_data(base_path, class_file, bs=bs)
 else:
     # do I need a vocab here? test with and without...
-    data_cl = (TextList.from_df(df, base_path, cols='TEXT', vocab=itos_wt103)
+    data_cl = (TextList.from_df(df, base_path, cols='TEXT', vocab=lm.vocab)
                #df has several columns; actual text is in column TEXT
                .split_by_rand_pct(valid_pct=valid_pct, seed=seed)
                #We randomly split and keep 20% for validation, set see for repeatability
@@ -177,18 +166,18 @@ learn.load_encoder(enc_file)
 learn.lr_find()
 ```
 
-This rate will vary based on batch size. 
-
-      For bs=96, 5e-2 worked well.
-      For bs=48, looks like 1e-1 would work
-
 ```python
 learn.recorder.plot()
 ```
 
 Change learning rate based on results from the above plot
 
-First unfrozen training results in approximately 90% accuracy
+First unfrozen training with `learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))` results in 
+
+    Total time: 22:36
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	0.967378 	0.638532 	0.870705 	22:36
 
 ```python
 if os.path.isfile(str(init_model_file) + '.pth'):
