@@ -160,6 +160,8 @@ df.shape
 
 Code to build initial version of language model; If running with full dataset, requires a **LOT** of RAM; using a **LOT** of CPU helps it to happen quickly as well
 
+**Note:** By default, this only tracks up to 60,000 tokens (words usually). In my testing that is sufficient to get high accuracy
+
 Questions:
 
 * why does this only seem to use CPU? (applies to both both textclasdatabunch and textlist)

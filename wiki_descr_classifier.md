@@ -113,11 +113,39 @@ data_clas.save('data_clas.pkl')
 <!-- #endregion -->
 
 ```python
+data_lm = TextLMDataBunch.from_csv(path, 'texts.csv')
+```
+
+```python
+#tmp = load_data('/home/jupyter/models/wt103-fwd/', 'itos_wt103.pkl', bs=bs)
+
+with (open("/home/jupyter/models/wt103-fwd/itos_wt103.pkl", "rb")) as openfile:
+    itos_wt103 = pickle.load(openfile)
+```
+
+```python
+len(itos_wt103)
+```
+
+```python
+with (open("/home/jupyter/models/wt103-fwd/lstm_fwd.pth", "rb")) as openfile:
+    wt = pickle.load(openfile)
+```
+
+```python
+type(wt)
+```
+
+```python
 if os.path.isfile(base_path/lm_file):
     print('loading existing language model')
     lm = load_data(base_path, lm_file, bs=bs)
 else:
     print('ERROR: language model file not found.')
+```
+
+```python
+len(lm.vocab.itos)
 ```
 
 #### This is a very CPU and RAM intensive process - no GPU involved
@@ -130,7 +158,7 @@ if os.path.isfile(filename):
     data_cl = load_data(base_path, class_file, bs=bs)
 else:
     # do I need a vocab here? test with and without...
-    data_cl = (TextList.from_df(df, base_path, cols='TEXT', vocab=lm.vocab)
+    data_cl = (TextList.from_df(df, base_path, cols='TEXT', vocab=itos_wt103)
                #df has several columns; actual text is in column TEXT
                .split_by_rand_pct(valid_pct=valid_pct, seed=seed)
                #We randomly split and keep 20% for validation, set see for repeatability
