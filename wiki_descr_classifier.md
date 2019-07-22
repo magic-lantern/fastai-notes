@@ -159,7 +159,7 @@ else:
 
 ```python
 learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5)
-learn.load_encoder(enc_file)
+#learn.load_encoder(enc_file)
 ```
 
 ```python
@@ -179,13 +179,19 @@ First unfrozen training with `learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))` resu
     epoch 	train_loss 	valid_loss 	accuracy 	time
         0 	0.967378 	0.638532 	0.870705 	22:36
 
+Without loading existing encoder (customized encoder) and using `learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))`
+
+    Total time: 20:26
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	0.873634 	0.651192 	0.864657 	20:26
 ```python
 if os.path.isfile(str(init_model_file) + '.pth'):
     learn.load(init_model_file)
     print('loaded initial learner')
 else:
     print('Training new initial learner')
-    learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
+    learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))
     print('Saving new learner')
     learn.save(init_model_file)
     print('Finished generating new learner')
