@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.1'
-      jupytext_version: 1.1.6
+      jupytext_version: 1.1.7
   kernelspec:
     display_name: Python 3
     language: python
@@ -195,9 +195,7 @@ learn.lr_find()
 learn.recorder.plot(skip_end=15)
 ```
 
-```python
 learn.fit_one_cycle(1, 1e-2, moms=(0.8,0.7))
-```
 
 ```python
 learn.save('fit_head')
@@ -213,9 +211,7 @@ To complete the fine-tuning, we can then unfeeze and launch a new training.
 learn.unfreeze()
 ```
 
-```python
 learn.fit_one_cycle(10, 1e-3, moms=(0.8,0.7))
-```
 
 ```python
 learn.save('fine_tuned')
@@ -287,6 +283,13 @@ learn.lr_find()
 learn.recorder.plot()
 ```
 
+With fine tuned language model get this result:
+
+    Total time: 03:40
+
+    epoch 	train_loss 	valid_loss 	accuracy
+        1 	0.310078 	0.197204 	0.926960
+
 ```python
 learn.fit_one_cycle(1, 2e-2, moms=(0.8,0.7))
 ```
@@ -312,6 +315,13 @@ learn.save('second')
 learn.load('second');
 ```
 
+With fine tuned language model get this result:
+
+    Total time: 05:42
+
+    epoch 	train_loss 	valid_loss 	accuracy
+        1 	0.223174 	0.165679 	0.939600
+
 ```python
 learn.freeze_to(-3)
 learn.fit_one_cycle(1, slice(5e-3/(2.6**4),5e-3), moms=(0.8,0.7))
@@ -322,8 +332,16 @@ learn.save('third')
 ```
 
 ```python
-learn.load('third');
+learn.load('third')
 ```
+
+With fine tuned language model get this result:
+
+    Total time: 15:17
+
+    epoch 	train_loss 	valid_loss 	accuracy
+    1 	0.240424 	0.155204 	0.943160
+    2 	0.217462 	0.153421 	0.943960
 
 ```python
 learn.unfreeze()
