@@ -43,18 +43,24 @@ descr_ft_file = 'cl_fine_tuned_'
 
 Setup parameters for models
 
-```
+```python
 # original data set too large to work with in reasonable time due to limted GPU resources
 pct_data_sample = 0.1
 # how much to hold out for validation
 valid_pct = 0.2
 # for repeatability - different seed than used with language model
 seed = 1776
-# batch size of 96 GPU needs more than 16GB RAM
-# batch size of 64 GPU uses 16GB RAM
-# batch size of 48 GPU uses 15GB RAM
-# changing batch size affects learning rate
-bs=48
+### FOR AWD_LSTM
+### changing batch size affects learning rate
+# batch size of 64 GPU uses about 16GB RAM (seems to work, but next run fails)
+# batch size of 48 GPU uses 16GB RAM at peak
+### FOR TRANSFORMER
+# batch size of 48 requires more than 16GB RAM
+# batch size of 32 requires more than 16GB RAM
+# batch size of 4 requires about 15 GB RAM
+### FOR TRANSFORMERXML
+# batch size of 48 requires more than 16GB RAM
+bs=64
 ```
 
 ```python
@@ -111,6 +117,7 @@ else:
                #building classifier to automatically determine DESCRIPTION
                .databunch(bs=bs))
     data_cl.save(filename)
+    print('created new data bunch')
 ```
 
 ```python
@@ -145,7 +152,12 @@ First frozen training with `pretrained=False` and bs of 64
     epoch 	train_loss 	valid_loss 	accuracy 	time
         0 	2.440479 	2.399600 	0.545564 	42:07
         
-Need to compare to unfrozen with smaller batch size to see if time or accuracy is different
+Unfrozen run with `learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))` and `pretrained=False` and `bs=48`
+
+    Total time: 56:26
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	2.530828 	2.415014 	0.545564 	56:26
 ```python
 learn.unfreeze()
 learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))
@@ -154,9 +166,21 @@ release_mem()
 
 ### Try Transformer instead of AWD_LSTM
 
+This architecture requires a very small batch size (4) to fit in GPU memory, is very slow, and has poor accuracy.
+
+    Total time: 4:02:13
+
+    epoch 	train_loss 	valid_loss 	 accuracy 	time
+        0 	2.913743 	144113.546875 	0.000024 	4:02:13
+        
+Perhaps I picked the wrong learning rate, or other hyper parameters?
+
 ```python
 learn = text_classifier_learner(data_cl, Transformer, drop_mult=0.5, pretrained=False)
 learn.unfreeze()
+```
+
+```python
 learn.lr_find()
 learn.recorder.plot()
 release_mem()
