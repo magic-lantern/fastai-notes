@@ -59,8 +59,9 @@ seed = 1776
 # batch size of 32 requires more than 16GB RAM
 # batch size of 4 requires about 15 GB RAM
 ### FOR TRANSFORMERXML
-# batch size of 48 requires more than 16GB RAM
-bs=64
+# batch size of 8 requires more than 16GB RAM
+# batch size of 4 requires about 11 GB RAM
+bs=4
 ```
 
 ```python
@@ -166,7 +167,7 @@ release_mem()
 
 ### Try Transformer instead of AWD_LSTM
 
-This architecture requires a very small batch size (4) to fit in GPU memory, is very slow, and has poor accuracy.
+This architecture requires a very small batch size (4) to fit in GPU memory, is very slow, and has poor accuracy. Also of note is the very low training loss and corresponding very high validation loss.
 
     Total time: 4:02:13
 
@@ -194,6 +195,11 @@ release_mem()
 
 ### Try TransformerXL
 
+    Total time: 4:11:31
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	2.446510 	11688.685547 	0.000289 	4:11:31
+
 ```python
 learn = text_classifier_learner(data_cl, TransformerXL, drop_mult=0.5, pretrained=False)
 learn.unfreeze()
@@ -206,4 +212,8 @@ release_mem()
 learn.unfreeze()
 learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))
 release_mem()
+```
+
+```python
+
 ```
