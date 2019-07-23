@@ -43,7 +43,7 @@ descr_ft_file = 'cl_fine_tuned_'
 
 Setup parameters for models
 
-```python
+```
 # original data set too large to work with in reasonable time due to limted GPU resources
 pct_data_sample = 0.1
 # how much to hold out for validation
@@ -52,9 +52,9 @@ valid_pct = 0.2
 seed = 1776
 # batch size of 96 GPU needs more than 16GB RAM
 # batch size of 64 GPU uses 16GB RAM
-# batch size of 48 GPU uses ??GB RAM
+# batch size of 48 GPU uses 15GB RAM
 # changing batch size affects learning rate
-bs=64
+bs=48
 ```
 
 ```python
@@ -100,6 +100,7 @@ Also, since there are a wide range of descriptions, not all descriptions present
 filename = base_path/class_file
 if os.path.isfile(filename):
     data_cl = load_data(base_path, class_file, bs=bs)
+    print('loaded existing data')
 else:
     # do I need a vocab here? test with and without...
     data_cl = (TextList.from_df(df, base_path, cols='TEXT')
@@ -117,14 +118,18 @@ learn = text_classifier_learner(data_cl, AWD_LSTM, drop_mult=0.5, pretrained=Fal
 ```
 
 ```python
+learn.unfreeze()
 learn.lr_find()
+release_mem()
 ```
 
 ```python
+# Change learning rate based on results from the above plot
 learn.recorder.plot()
 ```
 
-Change learning rate based on results from the above plot
+### AWD_LSTM training
+
 
 First unfrozen training with `learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))` results in 
 
@@ -133,36 +138,48 @@ First unfrozen training with `learn.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))` resu
     epoch 	train_loss 	valid_loss 	accuracy 	time
         0 	0.967378 	0.638532 	0.870705 	22:36
         
-First unfrozen training with `pretrained=False`
+First frozen training with `pretrained=False` and bs of 64
 
+    Total time: 42:07
+
+    epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	2.440479 	2.399600 	0.545564 	42:07
+        
+Need to compare to unfrozen with smaller batch size to see if time or accuracy is different
 ```python
+learn.unfreeze()
 learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))
-```
-
-```python
-
+release_mem()
 ```
 
 ### Try Transformer instead of AWD_LSTM
 
 ```python
 learn = text_classifier_learner(data_cl, Transformer, drop_mult=0.5, pretrained=False)
+learn.unfreeze()
 learn.lr_find()
 learn.recorder.plot()
+release_mem()
 ```
 
 ```python
+learn.unfreeze()
 learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))
+release_mem()
 ```
 
 ### Try TransformerXL
 
 ```python
 learn = text_classifier_learner(data_cl, TransformerXL, drop_mult=0.5, pretrained=False)
+learn.unfreeze()
 learn.lr_find()
 learn.recorder.plot()
+release_mem()
 ```
 
 ```python
+learn.unfreeze()
 learn.fit_one_cycle(1, 1e-1, moms=(0.8,0.7))
+release_mem()
 ```
