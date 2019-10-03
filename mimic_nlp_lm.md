@@ -5,11 +5,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.1'
-      jupytext_version: 1.1.7
+      jupytext_version: 1.2.1
   kernelspec:
-    display_name: Python 3
+    display_name: Python (fastai)
     language: python
-    name: python3
+    name: fastai
 ---
 
 ## Using FAST.AI for Medical NLP - Step 1 Build a langauge model
@@ -29,7 +29,7 @@ from fastai.text import *
 from sklearn.model_selection import train_test_split
 import glob
 import gc
-from pympler import asizeof
+# from pympler import asizeof
 ```
 
 <!-- #region -->
@@ -140,7 +140,7 @@ df = orig_df.sample(frac=pct_data_sample, random_state=seed)
 ```
 
 ```python
-print('df:', int(asizeof.asizeof(df) / 1024 / 1024), 'MB')
+#print('df:', int(asizeof.asizeof(df) / 1024 / 1024), 'MB')
 #print('orig_df:', asizeof.asizeof(orig_df))
 #print('data_lm:', asizeof.asizeof(data_lm, detail=1))
 #print asizeof.asized(obj, detail=1).format()
@@ -257,6 +257,9 @@ Time to run:
 ```python
 release_mem()
 ```
+
+     epoch 	train_loss 	valid_loss 	accuracy 	time
+        0 	2.371173 	2.207830 	0.562977 	1:08:52
 
 ```python
 # no idea how long nor how much resources this will take
